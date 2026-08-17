@@ -1,0 +1,1166 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Düdük Payı — Süper Lig hakem etkisi</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Karla:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  color-scheme:light dark;
+  --ground:#EFF2EC; --panel:#FFFFFF; --panel2:#F6F8F2;
+  --edge:#D6DDD0; --edge2:#E6EBE0; --line:#D6DDD0;
+  --ink:#111813; --body:#39463C; --muted:#5E6D61; --dim:#7C8A7F;
+  --amber:#8A6206; --amberFill:#E8B62C; --red:#A32F26; --redFill:#DB6A5E;
+  --green:#126B45; --greenFill:#35B77C;
+  --shadow:0 1px 2px rgba(17,24,19,.05), 0 6px 18px rgba(17,24,19,.06);
+}
+*{box-sizing:border-box;}
+
+html{-webkit-text-size-adjust:100%;}
+body{margin:0;background:var(--ground);color:var(--body);
+  font-family:'Karla',system-ui,-apple-system,sans-serif;font-size:15.5px;line-height:1.62;
+  -webkit-font-smoothing:antialiased;}
+.wrap{max-width:720px;margin:0 auto;padding:0 16px 100px;}
+
+/* Başlık */
+.head{padding:30px 0 18px;position:relative;}
+.head:before{content:"";position:absolute;left:-16px;right:-16px;top:0;height:150px;pointer-events:none;z-index:-1;
+  background:
+    linear-gradient(180deg,rgba(53,183,124,.09),transparent 72%),
+    repeating-linear-gradient(90deg,rgba(53,183,124,.05) 0 34px,transparent 34px 68px);}
+h1{font-family:'Oswald',sans-serif;font-weight:700;font-size:46px;line-height:.98;
+  letter-spacing:.005em;text-transform:uppercase;margin:0;color:var(--ink);}
+h1 span{color:var(--amberFill);}
+.sub{color:var(--body);font-size:15px;margin:10px 0 0;line-height:1.55;max-width:34ch;}
+.who{display:flex;align-items:center;gap:14px;margin-top:18px;padding-top:15px;
+  border-top:1px solid var(--edge);font-size:14px;color:var(--muted);flex-wrap:wrap;}
+.who b{font-weight:600;color:var(--ink);}
+.who button{background:none;border:0;color:var(--amber);font-size:14px;cursor:pointer;
+  padding:2px 0;font-family:inherit;font-weight:500;border-bottom:1px solid currentColor;}
+.who button:focus-visible{outline:2px solid var(--amber);outline-offset:3px;}
+
+/* Sekmeler */
+.tabwrap{position:relative;margin:6px 0 20px;}
+.tabs{display:flex;gap:3px;background:var(--panel);
+  border:1px solid var(--edge);border-radius:10px;padding:4px;box-shadow:var(--shadow);
+  overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;scroll-behavior:smooth;}
+.tabs::-webkit-scrollbar{display:none;}
+/* Kenarlardaki solma: kaydırılacak yer olduğunu gösterir */
+.tabwrap:before,.tabwrap:after{content:"";position:absolute;top:1px;bottom:1px;width:36px;
+  pointer-events:none;opacity:0;transition:opacity .18s;z-index:2;border-radius:10px;}
+.tabwrap:before{left:1px;background:linear-gradient(90deg,var(--panel) 30%,transparent);}
+.tabwrap:after{right:1px;background:linear-gradient(270deg,var(--panel) 30%,transparent);}
+.tabwrap.sol:before{opacity:1;}
+.tabwrap.sag:after{opacity:1;}
+/* Ok işareti */
+.tabok{position:absolute;top:50%;transform:translateY(-50%);z-index:3;pointer-events:none;
+  font-size:15px;line-height:1;color:var(--amber);opacity:0;transition:opacity .18s;}
+.tabok.l{left:6px;} .tabok.r{right:6px;}
+.tabwrap.sol .tabok.l{opacity:.9;}
+.tabwrap.sag .tabok.r{opacity:.9;}
+.tab{flex:0 0 auto;background:none;border:0;color:var(--muted);cursor:pointer;
+  font-family:'Oswald',sans-serif;font-weight:500;font-size:14.5px;letter-spacing:.03em;
+  padding:11px 13px;border-radius:7px;white-space:nowrap;transition:color .14s,background .14s;}
+.tab.on{background:var(--ink);color:var(--ground);font-weight:600;}
+.tab:focus-visible{outline:2px solid var(--amber);outline-offset:1px;}
+
+/* Takım detayı */
+.trow-t{cursor:pointer;}
+.trow-t:hover .team{color:var(--amber);}
+.trow-t.acik{background:var(--panel2);}
+.trow-t:focus-visible{outline:2px solid var(--amber);outline-offset:-2px;}
+.detay{background:var(--panel2);border-left:2px solid var(--amberFill);
+  border-radius:0 8px 8px 0;padding:10px 12px;margin:2px 0 10px;}
+.dsatir{padding:8px 0;border-bottom:1px solid var(--edge2);}
+.dsatir:last-child{border-bottom:none;}
+.dust{display:flex;justify-content:space-between;align-items:baseline;gap:10px;font-size:14px;color:var(--ink);}
+.dskor{font-family:'DM Mono',monospace;font-weight:500;color:var(--muted);margin-left:4px;}
+.dup{font-family:'DM Mono',monospace;font-size:14px;color:var(--green);}
+.ddown{font-family:'DM Mono',monospace;font-size:14px;color:var(--red);}
+.dmeta{font-size:12px;color:var(--muted);margin-top:3px;}
+.dkarar{font-size:12.5px;color:var(--body);margin-top:5px;padding-left:2px;display:flex;align-items:center;gap:7px;}
+.dnokta{width:7px;height:7px;border-radius:50%;flex:0 0 auto;}
+
+/* Kartlar */
+.card{background:var(--panel);border:1px solid var(--edge);border-radius:14px;
+  padding:20px;margin-bottom:14px;box-shadow:var(--shadow);position:relative;overflow:hidden;}
+.card:before{content:"";position:absolute;left:0;right:0;top:0;height:2px;
+  background:linear-gradient(90deg,var(--amberFill),transparent 62%);opacity:.5;}
+.lbl{font-family:'Oswald',sans-serif;font-weight:600;font-size:15px;text-transform:uppercase;
+  letter-spacing:.08em;color:var(--ink);margin-bottom:14px;display:block;}
+
+/* Form */
+label,.flabel{font-size:13px;font-weight:500;color:var(--muted);display:block;margin-bottom:5px;}
+input,select{width:100%;background:var(--panel);border:1.5px solid var(--edge);color:var(--ink);
+  padding:12px;border-radius:9px;font-size:16px;font-family:'Karla',sans-serif;line-height:1.3;}
+input::placeholder{color:var(--dim);}
+input:focus,select:focus{outline:none;border-color:var(--ink);}
+.row{display:flex;gap:10px;} .row>*{flex:1;min-width:0;}
+button.btn{background:var(--ink);color:var(--ground);border:0;padding:13px 18px;border-radius:10px;
+  font-family:'Oswald',sans-serif;font-weight:500;font-size:15px;letter-spacing:.045em;text-transform:uppercase;
+  cursor:pointer;line-height:1.2;transition:filter .14s,transform .1s;}
+button.btn:hover{filter:brightness(1.1);}
+button.btn:active{transform:translateY(1px);}
+button.btn:disabled{opacity:.32;}
+button.ghost{background:var(--panel);color:var(--body);border:1.5px solid var(--edge);}
+button.danger{background:none;color:var(--red);border:1.5px solid color-mix(in srgb,var(--red) 38%,transparent);}
+button.btn:focus-visible{outline:2px solid var(--amber);outline-offset:2px;}
+.btnrow{display:flex;gap:10px;flex-wrap:wrap;}
+
+/* Tablolar */
+.thead,.trow{display:grid;grid-template-columns:26px 1fr 50px 94px 56px;gap:8px;align-items:center;}
+.thead{padding-bottom:10px;border-bottom:1.5px solid var(--edge);
+  font-size:12px;font-weight:600;letter-spacing:.02em;color:var(--muted);}
+.trow{padding:11px 0;border-bottom:1px solid var(--edge2);}
+.trow:last-of-type{border-bottom:0;}
+.pos{font-family:'DM Mono',monospace;font-size:13px;color:var(--dim);text-align:right;}
+.team{font-size:15px;font-weight:500;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.pts{font-family:'DM Mono',monospace;font-size:14.5px;text-align:right;color:var(--ink);font-weight:500;}
+.ctr{text-align:center;}
+.drift{position:relative;height:18px;}
+.axis{position:absolute;left:50%;top:0;bottom:0;width:1px;background:var(--edge);}
+.bar{position:absolute;top:5px;height:9px;border-radius:3px;
+  transition:width .45s cubic-bezier(.2,.7,.3,1),left .45s cubic-bezier(.2,.7,.3,1);}
+.bar.pos{background:var(--greenFill);} .bar.neg{background:var(--redFill);}
+.band{position:absolute;top:2px;height:15px;border:1px dashed rgba(143,80,0,.35);border-radius:3px;}
+.delta{font-family:'DM Mono',monospace;font-size:13px;text-align:right;font-weight:500;}
+.delta.up{color:var(--green);} .delta.down{color:var(--red);}
+.mv{font-size:11px;color:var(--amber);margin-left:3px;}
+
+/* Maç kartları */
+.match{border-left:3px solid var(--edge);padding:12px 0 14px 14px;margin-bottom:14px;}
+.match:last-of-type{margin-bottom:0;}
+.match.has{border-left-color:var(--amberFill);}
+.mtop{display:flex;justify-content:space-between;align-items:baseline;gap:10px;}
+.mteams{font-size:16px;font-weight:600;color:var(--ink);}
+.mscore{font-family:'DM Mono',monospace;font-size:16px;font-weight:500;color:var(--amber);}
+.mmeta{font-size:13.5px;color:var(--muted);margin-top:4px;line-height:1.5;}
+.dec{font-size:13.5px;color:var(--body);margin-top:9px;padding-left:12px;
+  border-left:2px solid var(--edge2);line-height:1.55;}
+.chip{display:inline-block;font-family:'DM Mono',monospace;font-size:11.5px;padding:2px 6px;
+  border:1px solid var(--edge);border-radius:5px;color:var(--muted);margin-left:6px;}
+.by{display:inline-block;font-size:12px;background:var(--panel2);border:1px solid var(--edge);
+  border-radius:5px;padding:2px 8px;color:var(--muted);margin-left:7px;font-weight:500;}
+
+/* Yardımcı */
+.empty{text-align:center;padding:40px 18px;color:var(--muted);font-size:15px;line-height:1.65;}
+.note{font-size:13.5px;color:var(--muted);line-height:1.65;margin-top:14px;}
+.warn{background:#FDEDEB;border:1px solid #F0C9C4;color:#8A2B22;
+  padding:13px 15px;border-radius:10px;font-size:14px;line-height:1.55;margin-bottom:14px;}
+.ok{background:#E8F6F0;border:1px solid #B3DFCE;color:#0A5B43;
+  padding:13px 15px;border-radius:10px;font-size:14px;margin-bottom:14px;}
+.cand{background:var(--panel2);border:1px solid var(--edge);border-radius:10px;padding:15px;
+  margin-bottom:12px;font-size:14px;line-height:1.6;}
+.cand strong{color:var(--ink);}
+input[type=range]{accent-color:var(--amber);padding:0;background:none;border:0;height:28px;}
+.tag{display:inline-flex;align-items:center;gap:8px;background:var(--panel2);border:1px solid var(--edge);
+  border-radius:8px;padding:7px 12px;font-size:14px;margin:0 7px 8px 0;color:var(--ink);}
+details{margin-top:14px;border-top:1px solid var(--edge2);padding-top:12px;}
+summary{cursor:pointer;font-size:14px;font-weight:500;color:var(--amber);}
+summary:focus-visible{outline:2px solid var(--amber);outline-offset:3px;}
+details .note{margin-top:10px;}
+
+/* Giriş */
+.gate{max-width:400px;margin:0 auto;padding:70px 20px;}
+.gate h1{font-size:46px;margin-bottom:14px;}
+.gate .lead{color:var(--body);font-size:16px;line-height:1.6;margin:0 0 28px;}
+.gate .who-btn{display:block;width:100%;margin-bottom:10px;background:var(--panel);
+  border:1.5px solid var(--edge);border-radius:11px;padding:17px;font-size:17px;font-weight:500;
+  color:var(--ink);cursor:pointer;font-family:'Karla',sans-serif;text-align:left;
+  box-shadow:var(--shadow);}
+.gate .who-btn:hover{border-color:var(--ink);}
+.gate .who-btn:focus-visible{outline:2px solid var(--amber);outline-offset:3px;}
+.gate .foot{font-size:13.5px;color:var(--muted);line-height:1.6;margin-top:26px;}
+.qgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;}
+.qbtn{background:var(--panel);border:1.5px solid var(--edge);border-radius:10px;padding:14px 10px;
+  font-family:'Karla',sans-serif;font-size:14px;font-weight:500;color:var(--ink);cursor:pointer;
+  line-height:1.35;text-align:center;min-height:56px;}
+.qbtn:hover{border-color:var(--ink);}
+.qbtn.sel{background:var(--ink);color:#fff;border-color:var(--ink);}
+.qbtn:focus-visible{outline:2px solid var(--amber);outline-offset:2px;}
+.qstep{font-size:13.5px;font-weight:600;color:var(--ink);margin:0 0 9px;}
+.qpanel{background:var(--panel2);border:1.5px solid var(--amberFill);border-radius:11px;padding:15px;margin-top:10px;}
+.qchips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;}
+.qchip{background:var(--panel);border:1px solid var(--edge);border-radius:20px;padding:5px 12px;font-size:13px;color:var(--body);}
+.qmin{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:10px;}
+.qmin .qbtn{padding:11px 2px;min-height:44px;font-family:'DM Mono',monospace;font-size:13px;}
+@media (max-width:400px){
+  h1{font-size:36px;} .tab{font-size:13px;padding:11px 2px;}
+  .card{padding:16px;} .thead,.trow{grid-template-columns:22px 1fr 44px 78px 50px;gap:6px;}
+}
+@media (prefers-reduced-motion:reduce){.bar{transition:none;}}
+/* Koyu mod: sistem koyu temadaysa kendi paletimizle uyum */
+@media (prefers-color-scheme:dark){
+  :root{
+    --ground:#0B1210; --panel:#141D19; --panel2:#1B2721;
+    --edge:#2C3B33; --edge2:#243129; --line:#2C3B33;
+    --ink:#EDF2EA; --body:#C3D0C6; --muted:#94A499; --dim:#6E8076;
+    --amber:#F2C230; --amberFill:#E8B62C; --red:#F0685A; --redFill:#DB5A4C;
+    --green:#4ADE80; --greenFill:#35C46B;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.32);
+  }
+  .warn{background:#3A2320;border-color:#6E3B34;color:#F0AFA6;}
+  .ok{background:#173129;border-color:#2C5A49;color:#7BDDBB;}
+  .tab.on{background:var(--amberFill);color:#0B1210;}
+  button.btn{background:var(--amberFill);color:#0B1210;}
+  button.ghost{background:var(--panel2);color:var(--body);border-color:var(--edge);}
+  button.danger{background:none;color:var(--red);border-color:#6E3B34;}
+  input,select{background:var(--panel2);border-color:var(--edge);color:var(--ink);}
+  input:focus,select:focus{border-color:var(--amberFill);}
+}
+/* Zemini ortama bırakma: her durumda kendi rengimiz */
+html,body{background:var(--ground) !important;min-height:100%;}
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+/* ---------------- Ekip ---------------- */
+var CREW=["Güven","Ferhat","Musa","Gökhanlort","Coşkun"];
+var BIG4=["Beşiktaş","Fenerbahçe","Galatasaray","Trabzonspor"];
+
+/* ---------------- Model ---------------- */
+var XG_PEN=0.76, XG_GOAL=1.0, RED_BASE=0.9;
+var TYPES=[
+ {id:"pen_not",  label:"Verilmeyen penaltı",            side:"self", val:function(){return XG_PEN;}},
+ {id:"goal_off", label:"Haksız iptal edilen gol",       side:"self", val:function(){return XG_GOAL;}},
+ {id:"pen_opp",  label:"Rakibe yanlış verilen penaltı", side:"opp",  val:function(){return -XG_GOAL;}},
+ {id:"goal_opp", label:"Rakibin geçersiz golü sayıldı", side:"opp",  val:function(){return -XG_GOAL;}},
+ {id:"red_self", label:"Mağdur takıma haksız kırmızı",  side:"self", val:function(m){return RED_BASE*Math.max(0,(90-m)/90);}},
+ {id:"red_opp",  label:"Rakibe gösterilmeyen kırmızı",  side:"self", val:function(m){return RED_BASE*Math.max(0,(90-m)/90);}}
+];
+function typeOf(id){for(var i=0;i<TYPES.length;i++){if(TYPES[i].id===id)return TYPES[i];}return TYPES[0];}
+
+var DEFAULT_TEAMS=["Alanyaspor","Amedspor","Başakşehir","Beşiktaş","Çorum FK","Erzurumspor FK","Eyüpspor","Fenerbahçe","Galatasaray","Gaziantep FK","Gençlerbirliği","Göztepe","Kasımpaşa","Kocaelispor","Konyaspor","Rizespor","Samsunspor","Trabzonspor"];
+
+function fact(n){var r=1;for(var i=2;i<=n;i++)r*=i;return r;}
+function pois(k,l){return Math.exp(-l)*Math.pow(l,k)/fact(k);}
+function xPts(lh,la){
+  /* Kesme (12 gol) yüzünden kaybolan olasılık kütlesi tek tarafa yığılmasın:
+     galibiyet, beraberlik ve mağlubiyet ayrı sayılıp toplam 1'e normalize edilir. */
+  var w=0,d=0,l=0;
+  for(var h=0;h<=12;h++)for(var a=0;a<=12;a++){
+    var p=pois(h,lh)*pois(a,la);
+    if(h>a)w+=p; else if(h===a)d+=p; else l+=p;
+  }
+  var t=w+d+l; if(t<=0) return {home:1,away:1};
+  w/=t; d/=t; l/=t;
+  return {home:3*w+d, away:3*l+d};
+}
+function realPts(hg,ag){return hg>ag?[3,0]:(hg<ag?[0,3]:[1,1]);}
+function matchImpact(m){
+  var list=m.decisions||[];
+  var RED=["red_self","red_opp"];
+  var scoreDecs=[], redDecs=[];
+  list.forEach(function(d){ (RED.indexOf(d.type)>=0?redDecs:scoreDecs).push(d); });
+
+  /* Bir kararın gerçekleşme olasılığı:
+     verilmeyen penaltı -> gol olma ihtimali de çarpılır (0.76)
+     verilen penaltı / gol -> sonuç zaten bilindiği için tam 1 */
+  function prob(d,w){ return d.type==="pen_not" ? w*XG_PEN : w; }
+  /* Mağdur tarafa +1 mi, faydalanan taraftan -1 mi */
+  function goalShift(d){
+    var toHome = (d.harmed==="home");
+    if(d.type==="pen_not"||d.type==="goal_off") return toHome?[1,0]:[0,1];
+    return toHome?[0,-1]:[-1,0];   /* rakibin haksız golü/penaltısı silinir */
+  }
+
+  function calc(mode){
+    function wOf(d){
+      if(mode==="low") return d.certainty>=75 ? d.certainty/100 : 0;
+      if(mode==="high") return 1;
+      return d.certainty/100;
+    }
+    /* --- Kırmızı kartlar: kalan süreye yayılan gol beklentisi --- */
+    var rh=0, ra=0;
+    redDecs.forEach(function(d){
+      var v=RED_BASE*Math.max(0,(90-d.minute)/90)*wOf(d);
+      if(d.harmed==="home") rh+=v; else ra+=v;
+    });
+
+    /* --- A) Olasılıksal (maç yeniden oynanır) --- */
+    var ph=0, pa=0;
+    scoreDecs.forEach(function(d){
+      var g=goalShift(d), p=prob(d,wOf(d));
+      ph+=g[0]*p; pa+=g[1]*p;
+    });
+    var poi=xPts(Math.max(0.02,m.hg+ph+rh), Math.max(0.02,m.ag+pa+ra));
+
+    /* --- B) Kesikli (skor düzeltilir, maç yeniden oynanmaz) ---
+       Tüm karar kombinasyonları taranır: n karar için 2^n senaryo.
+       12'yi aşarsa tarama pratik olmaktan çıkar; o durumda kesikli dal
+       yerine olasılıksal sonuç kullanılır (tek maçta 12+ karar zaten yok). */
+    var n=scoreDecs.length, eh=0, ea=0;
+    if(n>12){ eh=poi.home; ea=poi.away; }
+    else
+    for(var mask=0; mask<(1<<n); mask++){
+      var pr=1, gh=m.hg, ga=m.ag;
+      for(var i=0;i<n;i++){
+        var d=scoreDecs[i], p=prob(d,wOf(d));
+        if(mask&(1<<i)){ pr*=p; var g=goalShift(d); gh+=g[0]; ga+=g[1]; }
+        else pr*=(1-p);
+      }
+      if(pr<=0) continue;
+      gh=Math.max(0,gh); ga=Math.max(0,ga);
+      var pts;
+      if(rh||ra) pts=xPts(Math.max(0.02,gh+rh), Math.max(0.02,ga+ra));
+      else { var r=realPts(gh,ga); pts={home:r[0],away:r[1]}; }
+      eh+=pr*pts.home; ea+=pr*pts.away;
+    }
+
+    /* --- Harmanlama: olay ne kadar geç olduysa kesikli senaryo o kadar ağır --- */
+    var t=0; list.forEach(function(d){ t=Math.max(t,Math.min(90,d.minute||45)); });
+    var wDisc = list.length ? t/90 : 0;
+    /* Karşılaştırma noktası da aynı mantıkla harmanlanmalı:
+       kesikli tarafta gerçek skorun gerçek puanı, olasılıksal tarafta beklenen puan */
+    var poiBase=xPts(Math.max(0.02,m.hg),Math.max(0.02,m.ag));
+    /* Kesikli dalda kırmızı kart varsa maç yine oynatılıyor demektir;
+       o zaman taban da beklenen puan olmalı, gerçek puan değil. */
+    var rb=realPts(m.hg,m.ag);
+    var dbh = (rh||ra) ? poiBase.home : rb[0];
+    var dba = (rh||ra) ? poiBase.away : rb[1];
+    var bh = wDisc*dbh + (1-wDisc)*poiBase.home;
+    var ba = wDisc*dba + (1-wDisc)*poiBase.away;
+    var fh = wDisc*eh + (1-wDisc)*poi.home;
+    var fa = wDisc*ea + (1-wDisc)*poi.away;
+    return {home:fh-bh, away:fa-ba};
+  }
+  /* Bir maçtan alınabilecek puan 0-3 arasındadır. Model bu aralığın dışına
+     taşarsa taşan kısım puana yazılmaz; "boşa giden mağduriyet" olarak ayrı
+     kaydedilir: takım maçı zaten kazanmıştır, ama aleyhine hata yapılmıştır. */
+  function kirp(im){
+    var r=realPts(m.hg,m.ag);
+    function tek(ham, gercek){
+      var duz=gercek+ham;
+      var kirpik=Math.max(0,Math.min(3,duz));
+      var tasan=duz-kirpik;
+      /* tasan>0: hak ettiği 3'ü aşıyor, puana dönüşemeyen mağduriyet
+         tasan<0: hak ettiği 0'ın altında, düşürülemeyen avantaj */
+      return {etki:kirpik-gercek, bosa:Math.max(0,tasan), fazla:Math.max(0,-tasan)};
+    }
+    var h=tek(im.home,r[0]), a=tek(im.away,r[1]);
+    return {home:h.etki, away:a.etki,
+            bosaHome:h.bosa, bosaAway:a.bosa,
+            fazlaHome:h.fazla, fazlaAway:a.fazla};
+  }
+  return {mid:kirp(calc("mid")), low:kirp(calc("low")), high:kirp(calc("high"))};
+}
+
+function buildTable(){
+  var t={};
+  S.teams.forEach(function(n){t[n]={name:n,p:0,gf:0,ga:0,pts:0,mid:0,low:0,high:0,forC:0,agC:0,bosa:0,fazla:0};});
+  S.matches.forEach(function(m){
+    if(!t[m.home]||!t[m.away])return;
+    var r=realPts(m.hg,m.ag),H=t[m.home],A=t[m.away];
+    H.p++;A.p++;H.gf+=m.hg;H.ga+=m.ag;A.gf+=m.ag;A.ga+=m.hg;H.pts+=r[0];A.pts+=r[1];
+    var im=matchImpact(m);
+    H.mid+=im.mid.home;A.mid+=im.mid.away;
+    H.bosa+=im.mid.bosaHome;A.bosa+=im.mid.bosaAway;
+    H.fazla+=im.mid.fazlaHome;A.fazla+=im.mid.fazlaAway;
+    H.low+=im.low.home;A.low+=im.low.away;
+    H.high+=im.high.home;A.high+=im.high.away;
+    (m.decisions||[]).forEach(function(d){
+      var harmed=d.harmed==="home"?H:A, other=d.harmed==="home"?A:H;
+      harmed.agC++; other.forC++;
+    });
+  });
+  var arr=Object.keys(t).map(function(k){return t[k];});
+  var real=arr.slice().sort(function(a,b){return b.pts-a.pts||(b.gf-b.ga)-(a.gf-a.ga)||b.gf-a.gf;});
+  real.forEach(function(x,i){x.realPos=i+1;});
+  var adj=arr.slice().sort(function(a,b){return (b.pts+b.mid)-(a.pts+a.mid)||(b.gf-b.ga)-(a.gf-a.ga);});
+  adj.forEach(function(x,i){x.adjPos=i+1;});
+  return {real:real,adj:adj};
+}
+
+/* ---------------- Durum ---------------- */
+var S={me:null, teams:DEFAULT_TEAMS.slice(), matches:[], tab:"table", draft:null, editId:null,
+       cands:null, busy:false, msg:"", wkNum:"", wkBusy:false, wkList:null, binId:"", sync:"yerel", quick:null};
+var TABS=[["table","Tablo"],["big4","Dört Büyük"],["add","Maç ekle"],["matches","Maçlar"],
+          ["refs","Hakemler"],["teams","Ayarlar"],["method","Kurallar"]];
+var KEY="dudukpayi-v1";
+function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){
+  return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});}
+
+/* --- Yerel katman: localStorage (Netlify) + window.storage (Claude önizleme) --- */
+function lsGet(k){try{return window.localStorage?localStorage.getItem(k):null;}catch(e){return null;}}
+function lsSet(k,v){try{if(window.localStorage)localStorage.setItem(k,v);}catch(e){}}
+function applyDoc(d){
+  if(d&&Array.isArray(d.teams)&&d.teams.length)S.teams=d.teams;
+  if(d&&Array.isArray(d.matches))S.matches=d.matches;
+}
+function localSave(){
+  var doc=JSON.stringify({teams:S.teams,matches:S.matches});
+  lsSet(KEY,doc);
+  try{ if(window.storage&&window.storage.set) window.storage.set(KEY,doc,true); }catch(e){}
+}
+function localLoad(cb){
+  var raw=lsGet(KEY);
+  if(raw){ try{applyDoc(JSON.parse(raw));}catch(e){} }
+  try{
+    if(window.storage&&window.storage.get){
+      window.storage.get(KEY,true).then(function(r){
+        if(r&&r.value){try{applyDoc(JSON.parse(r.value));}catch(e){}}
+        cb();
+      }).catch(cb); return;
+    }
+  }catch(e){}
+  cb();
+}
+
+/* --- Ortak depo: npoint.io --- */
+function binUrl(){ return S.binId?("https://api.npoint.io/"+S.binId):null; }
+function remotePush(cb){
+  if(!binUrl()){ if(cb)cb(true); return; }
+  fetch(binUrl(),{method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({teams:S.teams,matches:S.matches})})
+  .then(function(r){ if(cb)cb(r.ok); })
+  .catch(function(){ if(cb)cb(false); });
+}
+function remotePull(cb){
+  if(!binUrl()){ if(cb)cb(false); return; }
+  fetch(binUrl()).then(function(r){return r.ok?r.json():null;})
+  .then(function(d){ if(d){applyDoc(d); localSave();} if(cb)cb(!!d); })
+  .catch(function(){ if(cb)cb(false); });
+}
+
+function save(){
+  localSave();
+  if(binUrl()){
+    S.sync="…";
+    remotePush(function(ok){
+      S.sync=ok?"ortak":"hata";
+      if(!ok)S.msg="Ortak depoya yazılamadı — veri bu cihazda duruyor. İnterneti kontrol edip tekrar kaydet.";
+      render();
+    });
+  }
+}
+function boot(){
+  S.me=lsGet("dp-me")||null;
+  S.binId=lsGet("dp-bin")||"";
+  try{
+    if(window.storage&&window.storage.get){
+      window.storage.get("dp-me",false).then(function(r){
+        if(r&&r.value)S.me=r.value;
+        afterMe();
+      }).catch(afterMe); return;
+    }
+  }catch(e){}
+  afterMe();
+  function afterMe(){
+    if(S.me&&CREW.indexOf(S.me)<0)S.me=null;
+    localLoad(function(){
+      if(binUrl()){ S.sync="…"; render(); remotePull(function(ok){ S.sync=ok?"ortak":"hata"; render(); }); }
+      else { S.sync="yerel"; render(); }
+    });
+  }
+}
+function setMe(n){
+  S.me=n; lsSet("dp-me",n);
+  try{ if(window.storage&&window.storage.set) window.storage.set("dp-me",n,false); }catch(e){}
+  render();
+}
+function refresh(){
+  S.msg="";
+  if(!binUrl()){ S.msg="Ortak depo bağlı değil — Maçlar sekmesinden bağlayabilirsin."; render(); return; }
+  S.sync="…"; render();
+  remotePull(function(ok){ S.sync=ok?"ortak":"hata"; if(!ok)S.msg="Ortak depoya ulaşılamadı."; render(); });
+}
+function connectBin(){
+  var el=document.getElementById("binIn"); var v=(el.value||"").trim();
+  v=v.replace(/^https?:\/\/(www\.)?(api\.)?npoint\.io\//,"").replace(/\/$/,"");
+  if(!v){ S.msg="Depo kodunu yapıştır."; render(); return; }
+  S.msg=""; S.sync="…"; render();
+  fetch("https://api.npoint.io/"+v).then(function(r){return r.ok?r.json():Promise.reject();})
+  .then(function(d){
+    S.binId=v; lsSet("dp-bin",v);
+    var remoteHas=d&&Array.isArray(d.matches)&&d.matches.length;
+    if(remoteHas){ applyDoc(d); localSave(); S.sync="ortak"; S.msg="Bağlandı — ortak defterdeki "+d.matches.length+" maç yüklendi."; render(); }
+    else { remotePush(function(ok){ S.sync=ok?"ortak":"hata"; S.msg=ok?"Bağlandı — bu cihazdaki veri ortak depoya yazıldı.":"Bağlandı ama yazılamadı."; render(); }); }
+  })
+  .catch(function(){ S.sync=binUrl()?"hata":"yerel"; S.msg="Depo bulunamadı. Kodu kontrol et — npoint.io adresindeki son bölüm."; render(); });
+}
+function disconnectBin(){
+  if(!confirm("Ortak depo bağlantısı kesilsin mi? Veri bu cihazda kalır."))return;
+  S.binId=""; lsSet("dp-bin",""); S.sync="yerel"; render();
+}
+
+/* ---------------- Giriş ekranı ---------------- */
+function vGate(){
+  return '<div class="gate"><h1>Düdük <span>Payı.</span></h1>'
+   +'<p class="lead">Bu defteri beş kişi birlikte tutuyor. Kim olduğunu seç — girdiğin her maç senin adınla kaydedilir.</p>'
+   +CREW.map(function(n){return '<button class="who-btn" onclick="setMe(\''+n+'\')">'+esc(n)+'</button>';}).join('')
+   +'<p class="foot">Veri beşinizde ortak: biri girdiğinde diğerleri görür. Bu bir güvenlik kilidi değil, kimin ne girdiğini izleyebilmek için.</p></div>';
+}
+
+/* ---------------- Görünümler ---------------- */
+/* ---------------- Dört Büyük ---------------- */
+function vBig4(){
+  var T={}; BIG4.forEach(function(n){
+    T[n]={name:n, derbyF:0, derbyA:0, derbyPts:0, restF:0, restA:0, restPts:0, g:0, dg:0};
+  });
+  var grid={}; BIG4.forEach(function(a){ grid[a]={}; BIG4.forEach(function(b){ grid[a][b]={f:0,a:0}; }); });
+  var refs={}, anyMatch=0;
+
+  S.matches.forEach(function(m){
+    var hB=BIG4.indexOf(m.home)>=0, aB=BIG4.indexOf(m.away)>=0;
+    if(!hB&&!aB) return;
+    anyMatch++;
+    var derby=hB&&aB, im=matchImpact(m);
+    if(hB){ T[m.home].g++; if(derby)T[m.home].dg++;
+      if(derby)T[m.home].derbyPts+=im.mid.home; else T[m.home].restPts+=im.mid.home; }
+    if(aB){ T[m.away].g++; if(derby)T[m.away].dg++;
+      if(derby)T[m.away].derbyPts+=im.mid.away; else T[m.away].restPts+=im.mid.away; }
+    (m.decisions||[]).forEach(function(d){
+      var harmed=d.harmed==="home"?m.home:m.away, other=d.harmed==="home"?m.away:m.home;
+      if(BIG4.indexOf(harmed)>=0){ if(derby)T[harmed].derbyA++; else T[harmed].restA++; }
+      if(BIG4.indexOf(other)>=0){ if(derby)T[other].derbyF++; else T[other].restF++; }
+      if(derby){ grid[other][harmed].f++; grid[harmed][other].a++; }
+      var rn=(m.ref||"").trim();
+      if(rn){
+        if(!refs[rn])refs[rn]={n:rn,g:0,rows:{}};
+        BIG4.forEach(function(b){ if(!refs[rn].rows[b])refs[rn].rows[b]={f:0,a:0}; });
+        if(BIG4.indexOf(harmed)>=0)refs[rn].rows[harmed].a++;
+        if(BIG4.indexOf(other)>=0)refs[rn].rows[other].f++;
+      }
+    });
+    var rn2=(m.ref||"").trim();
+    if(rn2){ if(!refs[rn2])refs[rn2]={n:rn2,g:0,rows:{}}; refs[rn2].g++; }
+  });
+
+  if(!anyMatch) return '<div class="card"><div class="empty">Dört büyüklerin maçı henüz girilmemiş.<br>Maç eklendikçe bu sayfa dolar.</div></div>';
+
+  var rows=BIG4.map(function(n){var t=T[n]; t.net=t.derbyPts+t.restPts; t.totF=t.derbyF+t.restF; t.totA=t.derbyA+t.restA; return t;})
+    .sort(function(a,b){return b.net-a.net;});
+  var mx=1; rows.forEach(function(r){mx=Math.max(mx,Math.abs(r.net));});
+
+  var h='<div class="card"><span class="lbl">Düdük payı — dört büyük</span>'
+   +'<div class="thead" style="grid-template-columns:minmax(0,1fr) 38px 40px 68px 52px">'
+   +'<div>Takım</div><div class="pts">Leh</div><div class="pts">Aleyh</div><div class="ctr">Net</div><div class="pts">Puan</div></div>';
+  rows.forEach(function(r){
+    var w=Math.abs(r.net)/mx*50;
+    h+='<div class="trow" style="grid-template-columns:minmax(0,1fr) 38px 40px 68px 52px">'
+     +'<div class="team">'+esc(r.name)+'</div>'
+     +'<div class="pts" style="color:var(--green)">'+r.totF+'</div>'
+     +'<div class="pts" style="color:var(--red)">'+r.totA+'</div>'
+     +'<div class="drift"><div class="axis"></div>'
+     +'<div class="bar '+(r.net>=0?"pos":"neg")+'" style="left:'+(r.net>=0?50:50-w)+'%;width:'+w+'%"></div></div>'
+     +'<div class="delta '+(r.net>=0?"up":"down")+'">'+(r.net>=0?"+":"")+r.net.toFixed(1)+'</div></div>';
+  });
+  h+='</div>';
+
+  h+='<div class="card"><span class="lbl">Derbi içi / derbi dışı</span>'
+   +'<div class="thead" style="grid-template-columns:minmax(0,1.1fr) 1fr 1fr"><div>Takım</div><div class="pts">Derbi</div><div class="pts">Diğer 14</div></div>';
+  rows.forEach(function(r){
+    h+='<div class="trow" style="grid-template-columns:minmax(0,1.1fr) 1fr 1fr"><div class="team">'+esc(r.name)+'</div>'
+     +'<div class="delta '+(r.derbyPts>=0?"up":"down")+'">'+(r.derbyPts>=0?"+":"")+r.derbyPts.toFixed(1)
+     +' <span style="color:var(--dim)">('+r.dg+' maç)</span></div>'
+     +'<div class="delta '+(r.restPts>=0?"up":"down")+'">'+(r.restPts>=0?"+":"")+r.restPts.toFixed(1)
+     +' <span style="color:var(--dim)">('+(r.g-r.dg)+' maç)</span></div></div>';
+  });
+  h+='</div>';
+
+  var anyDerby=0; BIG4.forEach(function(a){BIG4.forEach(function(b){anyDerby+=grid[a][b].f;});});
+  if(anyDerby){
+    h+='<div class="card"><span class="lbl">Derbilerde kim kimden</span>';
+    BIG4.forEach(function(a){
+      var line=BIG4.filter(function(b){return b!==a&&(grid[a][b].f||grid[a][b].a);});
+      if(!line.length)return;
+      h+='<div style="margin-bottom:14px"><div class="mteams" style="margin-bottom:6px">'+esc(a)+'</div>';
+      line.forEach(function(b){
+        h+='<div class="trow" style="grid-template-columns:1fr 54px 54px;padding:7px 0">'
+         +'<div class="team" style="font-weight:400;color:var(--body)">'+esc(b)+' maçlarında</div>'
+         +'<div class="pts" style="color:var(--green)">+'+grid[a][b].f+'</div>'
+         +'<div class="pts" style="color:var(--red)">-'+grid[a][b].a+'</div></div>';
+      });
+      h+='</div>';
+    });
+    h+='</div>';
+  }
+
+  var rl=Object.keys(refs).map(function(k){return refs[k];})
+    .filter(function(r){var t=0;BIG4.forEach(function(b){t+=r.rows[b]?r.rows[b].f+r.rows[b].a:0;});r.tot=t;return t>0;})
+    .sort(function(a,b){return b.tot-a.tot;});
+  if(rl.length){
+    h+='<div class="card"><span class="lbl">Hakem × dört büyük</span>';
+    rl.forEach(function(r){
+      h+='<div style="margin-bottom:14px"><div class="mtop" style="margin-bottom:6px">'
+       +'<span class="mteams">'+esc(r.n)+'</span><span class="mmeta">'+r.g+' maç</span></div>';
+      BIG4.forEach(function(b){
+        var v=r.rows[b]; if(!v||(!v.f&&!v.a))return;
+        h+='<div class="trow" style="grid-template-columns:1fr 54px 54px;padding:7px 0">'
+         +'<div class="team" style="font-weight:400;color:var(--body)">'+esc(b)+'</div>'
+         +'<div class="pts" style="color:var(--green)">'+v.f+'</div>'
+         +'<div class="pts" style="color:var(--red)">'+v.a+'</div></div>';
+      });
+      h+='</div>';
+    });
+    h+='</div>';
+  }
+
+  return h;
+}
+
+function takimAc(ad){ S.acikTakim = (S.acikTakim===ad?null:ad); render(); }
+
+/* Bir takımın sayısı hangi maçlardan geliyor */
+function takimDetay(ad){
+  var satir=[];
+  S.matches.forEach(function(m){
+    if(m.home!==ad && m.away!==ad) return;
+    var evde=(m.home===ad), rakip=evde?m.away:m.home;
+    var im=matchImpact(m);
+    var etki=evde?im.mid.home:im.mid.away;
+    var bosa=evde?im.mid.bosaHome:im.mid.bosaAway;
+    var fazla=evde?im.mid.fazlaHome:im.mid.fazlaAway;
+    var kararlar=(m.decisions||[]).map(function(d){
+      var lehte = (d.harmed==="home")===evde;
+      return {metin:typeOf(d.type).label+' · '+d.minute+"′ · %"+d.certainty, lehte:lehte};
+    });
+    satir.push({rakip:rakip, evde:evde, skor:(evde?m.hg+'-'+m.ag:m.ag+'-'+m.hg),
+      hafta:m.week, hakem:m.ref, etki:etki, bosa:bosa, fazla:fazla, kararlar:kararlar});
+  });
+  if(!satir.length) return '<div class="detay"><p class="note" style="margin:0">Bu takımın kayıtlı maçı yok.</p></div>';
+  var h='<div class="detay">';
+  satir.forEach(function(x){
+    var etkili = Math.abs(x.etki)>0.005 || x.bosa>0.05 || x.fazla>0.05;
+    h+='<div class="dsatir"><div class="dust">'
+     +'<span>'+(x.evde?'':'@ ')+esc(x.rakip)+' <b class="dskor">'+x.skor+'</b></span>'
+     +'<span class="'+(x.etki>=0?'dup':'ddown')+'">'+(etkili?(x.etki>=0?'+':'')+x.etki.toFixed(2):'—')+'</span></div>'
+     +'<div class="dmeta">'+(x.hafta?esc(x.hafta)+'. hafta · ':'')+esc(x.hakem||'hakem girilmedi')
+     +(x.bosa>0.05?' · <span style="color:var(--amber)">karşılıksız '+x.bosa.toFixed(2)+'</span>':'')
+     +(x.fazla>0.05?' · <span style="color:var(--red)">geri alınamayan '+x.fazla.toFixed(2)+'</span>':'')
+     +'</div>';
+    x.kararlar.forEach(function(k){
+      h+='<div class="dkarar"><span class="dnokta" style="background:'+(k.lehte?'var(--greenFill)':'var(--redFill)')+'"></span>'+esc(k.metin)+'</div>';
+    });
+    h+='</div>';
+  });
+  return h+'</div>';
+}
+
+/* Paylaşılabilir metin özeti */
+function ozetKopyala(){
+  var T=buildTable();
+  var mac=S.matches.length, karar=0;
+  S.matches.forEach(function(m){karar+=(m.decisions||[]).length;});
+  var satir=T.adj.slice(0,8).map(function(r,i){
+    var d=r.mid, ok=(r.realPos-r.adjPos);
+    return (i+1)+'. '+r.name+' '+(r.pts+r.mid).toFixed(1)
+      +(Math.abs(d)>=0.05?' ('+(d>0?'+':'')+d.toFixed(1)+')':'')
+      +(ok!==0?' '+(ok>0?'▲':'▼')+Math.abs(ok):'');
+  }).join('\n');
+  var metin='Düdük Payı — hakem kararları düzeltilseydi puan tablosu\n'
+    +mac+' maç, '+karar+' tartışmalı karar\n\n'+satir
+    +'\n\nParantez içi: kararların puan etkisi. ▲▼ gerçek sıralamaya göre değişim.';
+  var bitir=function(ok){ S.msg = ok?'Özet panoya kopyalandı.':'Kopyalanamadı. Metni elle seçip kopyalayabilirsin.'; render(); };
+  try{
+    if(navigator.clipboard&&navigator.clipboard.writeText){
+      navigator.clipboard.writeText(metin).then(function(){bitir(true);},function(){bitir(false);});
+      return;
+    }
+  }catch(e){}
+  bitir(false);
+}
+
+function vTable(){
+  if(!S.matches.length) return '<div class="card"><div class="empty">Henüz maç yok.<br>“Maç ekle” sekmesinden haftayı çek ya da tek maç gir.</div></div>';
+  var T=buildTable(), maxAbs=1.5;
+  T.adj.forEach(function(r){maxAbs=Math.max(maxAbs,Math.abs(r.mid),Math.abs(r.low),Math.abs(r.high));});
+  var totalDec=0; S.matches.forEach(function(m){totalDec+=(m.decisions||[]).length;});
+  var X=function(v){return 50+(v/maxAbs)*50;};
+
+  var h='<div class="card"><span class="lbl">Düzeltilmiş sıralama</span>';
+  h+='<div class="thead"><div class="pos">#</div><div>Takım</div><div class="pts">Puan</div><div class="ctr">Sapma</div><div class="pts">Fark</div></div>';
+  T.adj.forEach(function(r){
+    var move=r.realPos-r.adjPos;
+    var lo=Math.min(r.low,r.high), hi=Math.max(r.low,r.high);
+    var bx1=X(lo), bx2=X(hi), w=Math.abs(X(r.mid)-50);
+    var acik = S.acikTakim===r.name;
+    h+='<div class="trow trow-t'+(acik?' acik':'')+'" data-takim="'+esc(r.name)+'" onclick="takimAc(this.getAttribute(\'data-takim\'))" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();takimAc(this.getAttribute(\'data-takim\'));}" role="button" tabindex="0">'
+     +'<div class="pos">'+r.adjPos+'</div><div class="team">'+esc(r.name)+'</div>'
+     +'<div class="pts">'+(r.pts+r.mid).toFixed(1)+'</div>'
+     +'<div class="drift" title="'+lo.toFixed(1)+' … '+hi.toFixed(1)+' puan"><div class="axis"></div>'
+     +((bx2-bx1)>0.8?'<div class="band" style="left:'+bx1+'%;width:'+(bx2-bx1)+'%"></div>':'')
+     +'<div class="bar '+(r.mid>=0?'pos':'neg')+'" style="left:'+(r.mid>=0?50:50-w)+'%;width:'+w+'%"></div></div>'
+     +'<div class="delta '+(r.mid>=0?'up':'down')+'">'+(r.mid>=0?'+':'')+r.mid.toFixed(1)
+     +(move!==0?'<span class="mv">'+(move>0?'▲':'▼')+Math.abs(move)+'</span>':'')+'</div></div>';
+    if(acik) h+=takimDetay(r.name);
+  });
+  var bosaList=T.adj.filter(function(r){return r.bosa>0.05||r.fazla>0.05;})
+    .sort(function(a,b){return (b.bosa+b.fazla)-(a.bosa+a.fazla);});
+  if(bosaList.length){
+    h+='<div style="margin-top:18px;padding-top:14px;border-top:1px solid var(--line)">'
+     +'<span class="lbl" style="display:block;margin-bottom:8px">Karşılıksız mağduriyet</span>'
+     +'<p class="note" style="margin-top:0">Bir maçtan en fazla 3, en az 0 puan alınır. Bu sınırların dışına taşan etki tabloya yazılamaz ama silinmez de. '
+     +'<b style="color:var(--amber)">Sarı</b>: maçı zaten kazandığı için puana dönüşemeyen mağduriyet. '
+     +'<b style="color:var(--red)">Kırmızı</b>: maçı zaten kaybettiği için geri alınamayan avantaj.</p>';
+    bosaList.forEach(function(r){
+      h+='<div class="trow"><div class="pos"></div><div class="team">'+esc(r.name)+'</div>'
+       +'<div class="pts" style="color:var(--amber)">'+(r.bosa>0.05?r.bosa.toFixed(1):'')+'</div>'
+       +'<div class="ctr"></div>'
+       +'<div class="pts" style="color:var(--red)">'+(r.fazla>0.05?r.fazla.toFixed(1):'')+'</div></div>';
+    });
+    h+='</div>';
+  }
+  h+='<div class="btnrow" style="margin-top:14px"><button class="btn ghost" onclick="ozetKopyala()">Özeti kopyala</button></div></div>';
+
+  var gcols='24px minmax(0,1fr) 30px 44px 40px 40px';
+  h+='<div class="card"><span class="lbl">Gerçek sıralama</span>'
+   +'<div class="thead" style="grid-template-columns:'+gcols+'"><div class="pos">#</div><div>Takım</div><div class="pts">O</div><div class="pts">A:Y</div><div class="pts">Av</div><div class="pts">P</div></div>';
+  T.real.forEach(function(r){
+    h+='<div class="trow" style="grid-template-columns:'+gcols+'"><div class="pos">'+r.realPos+'</div>'
+     +'<div class="team">'+esc(r.name)+'</div><div class="pts">'+r.p+'</div>'
+     +'<div class="pts" style="color:var(--muted)">'+r.gf+':'+r.ga+'</div>'
+     +'<div class="pts">'+((r.gf-r.ga)>0?'+':'')+(r.gf-r.ga)+'</div>'
+     +'<div class="pts" style="color:var(--amber)">'+r.pts+'</div></div>';
+  });
+  h+='</div>';
+  h+='<p class="note">A:Y = attığı ve yediği gol. Averaj bu iki sayının farkıdır ve <b>yalnızca girilen skorlardan</b> gelir — hakem kararları bu tabloyu hiç etkilemez.</p></div>';
+
+  h+='<div class="card"><span class="lbl">Denge kontrolü</span>'
+   +'<div class="thead" style="grid-template-columns:1fr 56px 56px"><div>Takım</div><div class="pts">Lehine</div><div class="pts">Aleyhine</div></div>';
+  T.real.slice().sort(function(a,b){return (b.agC-b.forC)-(a.agC-a.forC);}).forEach(function(r){
+    h+='<div class="trow" style="grid-template-columns:1fr 56px 56px"><div class="team">'+esc(r.name)+'</div>'
+     +'<div class="pts" style="color:var(--green)">'+r.forC+'</div>'
+     +'<div class="pts" style="color:var(--red)">'+r.agC+'</div></div>';
+  });
+  return h;
+}
+
+function vAdd(){
+  if(!S.draft) S.draft={home:S.teams[0],away:S.teams[1]||S.teams[0],hg:0,ag:0,ref:"",week:"",decs:[]};
+  var d=S.draft, same=(d.home===d.away);
+  var opt=function(sel){return S.teams.map(function(t){return '<option'+(t===sel?' selected':'')+'>'+esc(t)+'</option>';}).join('');};
+  var h='';
+  if(S.editId){
+    h+='<div class="ok" style="display:flex;justify-content:space-between;align-items:center;gap:10px">'
+     +'<span>Bir maçı düzenliyorsun.</span>'
+     +'<button class="btn ghost" style="padding:6px 12px;font-size:13px" onclick="cancelEdit()">Vazgeç</button></div>';
+  }
+  {
+    h+='<div class="card"><span class="lbl">Haftayı toplu ekle</span>'
+     +'<p class="note" style="margin:0 0 10px">Hafta verisini yapıştır — üstüne yazmaz, ekler.</p>'
+     +'<textarea id="pasteIn" placeholder=\'[{"home":"Beşiktaş","away":"Eyüpspor","hg":1,"ag":0,"ref":"Hakem adı","week":"1"}]\' style="width:100%;min-height:96px;background:var(--panel2);border:1.5px solid var(--edge);color:var(--ink);border-radius:9px;padding:12px;font-family:\'DM Mono\',monospace;font-size:13px;line-height:1.5"></textarea>'
+     +'<div class="btnrow" style="margin-top:10px"><button class="btn" onclick="pasteWeek()">Maçları ekle</button></div>'
+     +'<details><summary>Biçim açıklaması</summary><p class="note">Köşeli parantez içinde, her maç bir nesne. '
+     +'<b>hg</b> ev sahibi golü, <b>ag</b> deplasman golü, <b>ref</b> hakem, <b>week</b> hafta. '
+     +'Takım adları listendekilere yakın yazılırsa otomatik eşleşir.</p></details>';
+    h+='</div>';
+  }
+
+  h+='<div class="card"><span class="lbl">'+(S.editId?'Maçı düzenle':'Tek maç gir')+'</span><div class="row" style="margin-bottom:8px">'
+   +'<select onchange="setD(\'home\',this.value)" aria-label="Ev sahibi">'+opt(d.home)+'</select>'
+   +'<select onchange="setD(\'away\',this.value)" aria-label="Deplasman">'+opt(d.away)+'</select></div>'
+   +'<div class="row" style="margin-bottom:5px">'
+   +'<input type="number" min="0" max="20" inputmode="numeric" placeholder="0" value="'+(d.hg===""?"":d.hg)+'" onfocus="this.select()" oninput="setGoal(\'hg\',this)" aria-label="'+esc(d.home)+' gol">'
+   +'<input type="number" min="0" max="20" inputmode="numeric" placeholder="0" value="'+(d.ag===""?"":d.ag)+'" onfocus="this.select()" oninput="setGoal(\'ag\',this)" aria-label="'+esc(d.away)+' gol"></div>'
+   +'<p class="note" style="margin:0 0 10px;font-size:12.5px">Sol kutu <b>'+esc(d.home)+'</b>, sağ kutu <b>'+esc(d.away)+'</b> golü.</p>'
+   +'<div id="goalWarn"></div>'
+   +'<div class="row">'
+   +'<input placeholder="Hakem" value="'+esc(d.ref)+'" oninput="setDQ(\'ref\',this.value)">'
+   +'<input placeholder="Hafta" value="'+esc(d.week)+'" oninput="setDQ(\'week\',this.value)"></div>'
+   +(same?'<div class="warn" style="margin-top:10px">Aynı takımı iki tarafa da seçtin.</div>':'')+'</div>';
+
+  h+='<div class="card"><span class="lbl">Tartışmalı kararlar</span>'
+   +'<p class="note" style="margin:0 0 10px">Kararlar mağdur taraf üzerinden girilir.</p>'
+   +'<div class="btnrow" style="margin-bottom:10px">'
+   +'<button class="btn ghost" onclick="addDec()">+ Karar ekle</button></div>';
+
+  d.decs.forEach(function(x,i){
+    h+='<div class="cand"><select onchange="setDec('+i+',\'type\',this.value)" style="margin-bottom:8px" aria-label="Karar türü">'
+     +TYPES.map(function(t){return '<option value="'+t.id+'"'+(t.id===x.type?' selected':'')+'>'+t.label+'</option>';}).join('')
+     +'</select><div class="row" style="margin-bottom:8px">'
+     +'<select onchange="setDec('+i+',\'harmed\',this.value)" aria-label="Mağdur taraf">'
+     +'<option value="home"'+(x.harmed==="home"?' selected':'')+'>Mağdur: '+esc(d.home)+'</option>'
+     +'<option value="away"'+(x.harmed==="away"?' selected':'')+'>Mağdur: '+esc(d.away)+'</option></select>'
+     +'<input type="number" min="1" max="95" inputmode="numeric" value="'+x.minute+'" onchange="setDec('+i+',\'minute\',+this.value)" aria-label="Dakika"></div>'
+     +'<span class="lbl" style="margin-bottom:5px">Kesinlik %<span id="cert'+i+'">'+x.certainty+'</span></span>'
+     +'<input type="range" min="10" max="100" step="5" value="'+x.certainty+'"'
+     +' oninput="document.getElementById(\'cert'+i+'\').textContent=this.value"'
+     +' onchange="setDec('+i+',\'certainty\',+this.value)">'
+     +'<input placeholder="Not (isteğe bağlı)" value="'+esc(x.note)+'" oninput="setDecQ('+i+',\'note\',this.value)" style="margin-top:8px">'
+     +'<button class="btn danger" style="margin-top:9px" onclick="delDec('+i+')">Sil</button></div>';
+  });
+  h+='</div><div class="btnrow"><button class="btn" style="flex:1;padding:13px"'+(same?' disabled':'')+' onclick="saveMatch()">'
+   +(S.editId?'Değişiklikleri kaydet':'Maçı kaydet')+'</button>'
+   +(S.editId?'<button class="btn ghost" style="padding:13px" onclick="cancelEdit()">Vazgeç</button>':'')+'</div>';
+  return h;
+}
+
+function vMatches(){
+  var h='';
+  if(!S.matches.length){ h='<div class="card"><div class="empty">Kayıtlı maç yok.</div></div>'; }
+  else{
+    var seen={}, dupPairs=[];
+    S.matches.forEach(function(m){
+      var k=m.home+"|"+m.away;
+      if(seen[k]){ if(dupPairs.indexOf(k)<0)dupPairs.push(k); } else seen[k]=1;
+    });
+    h='<div class="card"><span class="lbl">'+S.matches.length+' maç</span>';
+    if(dupPairs.length){
+      h+='<div class="warn">Aynı eşleşme birden fazla kayıtlı: '
+       +dupPairs.map(function(k){return esc(k.replace("|"," — "));}).join(", ")
+       +'. Bu, puan tablosunu bozar — fazlasını sil.</div>';
+    }
+    var odd=S.matches.filter(function(m){return (m.hg+m.ag)>=7 || m.hg>=6 || m.ag>=6;});
+    if(odd.length){
+      h+='<div class="warn"><b>Şüpheli skor</b><br>'
+       +odd.map(function(m){
+           return esc(m.home)+' '+m.hg+'-'+m.ag+' '+esc(m.away)+(m.week?' ('+esc(m.week)+'. hafta)':'')
+             +' <button class="btn danger" style="padding:3px 9px;font-size:12px;margin-left:6px" onclick="delMatch('+m.id+')">Sil</button>';
+         }).join('<br>')
+       +'<br><span style="font-weight:400">Süper Lig\'de bu skorlar çok nadirdir. Yanlış girildiyse sil — averajı bozan tek şey budur.</span></div>';
+    }
+    S.matches.slice().reverse().forEach(function(m){
+      var im=matchImpact(m), n=(m.decisions||[]).length;
+      h+='<div class="match'+(n?' has':'')+'"><div class="mtop"><span class="mteams">'+esc(m.home)+' — '+esc(m.away)+'</span>'
+       +'<span class="mscore">'+m.hg+':'+m.ag+'</span></div><div class="mmeta">'
+       +(m.week?esc(m.week)+'. hafta · ':'')+esc(m.ref||"hakem girilmedi")
+       +(n?(' · etki '+(im.mid.home>=0?'+':'')+im.mid.home.toFixed(2)+' / '+(im.mid.away>=0?'+':'')+im.mid.away.toFixed(2)):'')
+       +(m.by?'<span class="by">'+esc(m.by)+'</span>':'')
+       +'</div>';
+      (m.decisions||[]).forEach(function(x){
+        h+='<div class="dec">'+esc(typeOf(x.type).label)+' · mağdur: '+esc(x.harmed==="home"?m.home:m.away)+' · '+x.minute+'′'
+         +'<span class="chip">%'+x.certainty+'</span>'
+         +(x.by&&x.by!==m.by?'<span class="by">'+esc(x.by)+'</span>':'')
+         +(x.note?'<div style="color:var(--dim)">'+esc(x.note)+'</div>':'')+'</div>';
+      });
+      if(S.quick&&S.quick.id===m.id){ h+=quickPanel(m); }
+      else{
+        h+='<div class="btnrow" style="margin-top:9px">'
+         +'<button class="btn" style="padding:8px 14px;font-size:13.5px" onclick="quickStart('+m.id+')">+ Karar ekle</button>'
+         +'<button class="btn ghost" style="padding:8px 12px;font-size:13px" onclick="editMatch('+m.id+')">Düzenle</button>'
+         +'<button class="btn danger" style="padding:8px 12px;font-size:13px" onclick="delMatch('+m.id+')">Sil</button></div>';
+      }
+      h+='</div>';
+    });
+    h+='</div>';
+  }
+  return h;
+}
+
+function vRefs(){
+  var map={};
+  S.matches.forEach(function(m){
+    var name=(m.ref||"").trim(); if(!name)return;
+    if(!map[name])map[name]={name:name,games:0,decs:0,byTeam:{}};
+    map[name].games++;
+    var im=matchImpact(m);
+    function ent(t){ if(!map[name].byTeam[t])map[name].byTeam[t]={f:0,a:0,pts:0,bosa:0,fazla:0}; return map[name].byTeam[t]; }
+    (m.decisions||[]).forEach(function(x){
+      map[name].decs++;
+      ent(x.harmed==="home"?m.home:m.away).a++;
+      ent(x.harmed==="home"?m.away:m.home).f++;
+    });
+    ent(m.home).pts+=im.mid.home; ent(m.away).pts+=im.mid.away;
+    ent(m.home).bosa+=im.mid.bosaHome; ent(m.away).bosa+=im.mid.bosaAway;
+    ent(m.home).fazla+=im.mid.fazlaHome; ent(m.away).fazla+=im.mid.fazlaAway;
+  });
+  var refs=Object.keys(map).map(function(k){return map[k];}).sort(function(a,b){return b.decs-a.decs;});
+  if(!refs.length) return '<div class="card"><div class="empty">Hakem adı girilmiş maç yok.<br>Maç eklerken hakem alanını doldurursan burada döküm çıkar.</div></div>';
+  var h='';
+  refs.forEach(function(r){
+    h+='<div class="card"><div class="mtop" style="margin-bottom:9px">'
+     +'<span style="font-family:\'Oswald\',sans-serif;font-weight:600;font-size:19px;letter-spacing:.02em">'+esc(r.name)+'</span>'
+     +'<span class="mscore">'+r.games+' maç · '+r.decs+' karar</span></div>';
+    Object.keys(r.byTeam).filter(function(k){return r.byTeam[k].f||r.byTeam[k].a;})
+      .sort(function(a,b){return (r.byTeam[b].a-r.byTeam[b].f)-(r.byTeam[a].a-r.byTeam[a].f);})
+      .forEach(function(k){
+        var v=r.byTeam[k];
+        h+='<div class="trow" style="grid-template-columns:1fr 44px 44px 58px"><div class="team">'+esc(k)+'</div>'
+         +'<div class="pts" style="color:var(--green)">'+v.f+'</div>'
+         +'<div class="pts" style="color:var(--red)">'+v.a+'</div>'
+         +'<div class="delta '+(v.pts>=0?'up':'down')+'">'+(v.pts>=0?'+':'')+v.pts.toFixed(1)
+         +(v.bosa>0.05?'<span class="mv" style="color:var(--amber)" title="puana dönüşemeyen mağduriyet">◦'+v.bosa.toFixed(1)+'</span>':'')
+         +'</div></div>';
+      });
+    h+='</div>';
+  });
+  return h;
+}
+
+function vKurallar(){
+  var kararSay=0; S.matches.forEach(function(m){kararSay+=(m.decisions||[]).length;});
+
+  var h='<div class="card"><span class="lbl">Bu araç ne yapıyor</span>'
+   +'<p class="note" style="margin-top:0">Tek bir soruya cevap arıyor: hakem kararları düzeltilseydi puan tablosu ne olurdu?</p>'
+   +'<p class="note">Maçı, hakemi, tartışmalı kararı ve o karara ne kadar emin olduğunu girersin. Kalanını model hesaplar.</p></div>';
+
+  h+='<div class="card" style="border-color:var(--amber)"><span class="lbl" style="color:var(--amber)">Önce şunu bil</span>'
+   +'<p class="note" style="margin-top:0">Bu tablo <b>yalnızca girilen kararlar kadar dürüsttür.</b> Sadece kendi takımının mağduriyetlerini girersen sayfa senin haklı olduğunu söyler — ama hiçbir şey kanıtlamaz.</p>'
+   +'<p class="note">Aracı savunulabilir kılan tek şey, bütün takımların lehine ve aleyhine kararların aynı titizlikle kaydedilmesidir. Tablo sekmesinin altındaki denge kontrolüne bak: bir takımın yalnız bir sütunu doluysa kayıt eksiktir.</p>'
+   +'<p class="note">Şu an <b>'+S.matches.length+' maç</b>, <b>'+kararSay+' karar</b> kayıtlı.</p></div>';
+
+  h+='<div class="card"><span class="lbl">Hesap nasıl işliyor</span>'
+   +'<p class="note" style="margin-top:0"><b>Olayın dakikası belirleyicidir.</b> 20. dakikadaki bir hatadan sonra 70 dakika oynanacağı için maç Poisson dağılımıyla yeniden çözülür; her sonuç mümkündür. '
+   +'90+7\'de oynanacak maç kalmadığı için skor doğrudan düzeltilir: yanlış verilen penaltı iptal edilirse 0-1 kesin olarak 0-0 olur. Arada kalan dakikalarda iki yöntem harmanlanır.</p>'
+   +'<p class="note"><b>Sonucu bilinen olaylar tam gol sayılır.</b> Golle biten yanlış penaltı ya da sayılan ofsaytlı gol geri alınırken 1 tam gol düşülür.</p>'
+   +'<p class="note"><b>Sonucu bilinmeyen olaylar olasılıkla sayılır.</b> Verilmeyen penaltı 0,76 gol değerindedir; penaltıların yaklaşık dörtte üçü gole çevrilir. Kırmızı kartın etkisi kalan süreye göre azalır, 90. dakikada sıfırdır.</p>'
+   +'<p class="note"><b>Kesinlik yüzdesi ağırlık verir.</b> %100 net bir hata tam etki eder, %60 tartışmalı bir karar 0,6 katsayıyla girer.</p></div>';
+
+  h+='<div class="card"><span class="lbl">Puan sınırı</span>'
+   +'<p class="note" style="margin-top:0">Bir maçtan en fazla 3, en az 0 puan alınır. Model bu sınırların dışına taşarsa fazlası puana yazılmaz — ama silinmez de:</p>'
+   +'<p class="note"><b style="color:var(--amber)">Karşılıksız mağduriyet:</b> takım maçı zaten kazanmıştır, hak ettiği fazlası puana dönüşemez. Hata yapılmıştır, sonuca yansımamıştır.</p>'
+   +'<p class="note"><b style="color:var(--red)">Geri alınamayan avantaj:</b> takım maçı zaten kaybetmiştir, kararlardan kazandığı düşülemez.</p></div>';
+
+  h+='<div class="card"><span class="lbl">Tabloları okuma</span>'
+   +'<p class="note" style="margin-top:0"><b>Tablo.</b> <span style="color:var(--green)">Yeşil</span> kararlar yüzünden puan kaybetmiş, düzeltilince kazanıyor. <span style="color:var(--red)">Kırmızı</span> kararlardan puan kazanmış. ▲▼ gerçek sıralamaya göre yer değişimi. Bir takıma dokununca sayısının hangi maçlardan geldiği açılır.</p>'
+   +'<p class="note"><b>Sapma çubuğu.</b> Kararların kesinliği en dar ve en geniş yorumlandığında puanın nereye kadar gidebileceğini gösterir. Bant genişse sonuç tartışmalıdır.</p>'
+   +'<p class="note"><b>Averaj.</b> Yalnızca girilen skorlardan gelir; hakem kararları averajı değiştirmez.</p>'
+   +'<p class="note"><b>Dört Büyük.</b> Bu dördü birbiriyle oynarken birinin kazandığı puan diğerinden çıkar, toplamları sıfıra yakındır. Anlamlı olan, dört büyüğün <b>ligin geri kalanına karşı</b> aldığı denge.</p>'
+   +'<p class="note"><b>Hakemler.</b> Leh: rakibi mağdur eden karar sayısı. Aleyh: kendisinin mağdur olduğu. <span style="color:var(--amber)">◦</span> işaretli sayı puana dönüşemeyen mağduriyettir. Bir hakemin birkaç maçta çıkan farkı tesadüftür; örüntüden söz etmek için en az 8-10 maç ve iki yönlü kayıt gerekir.</p></div>';
+
+  h+='<div class="card"><span class="lbl">Karar türleri</span>';
+  TYPES.forEach(function(t){
+    h+='<div class="trow" style="grid-template-columns:minmax(0,1fr) auto"><div class="team" style="font-size:13.5px">'+esc(t.label)+'</div>'
+     +'<div class="pts" style="font-size:12px;color:var(--muted)">'+(t.id.indexOf("red")===0?'süreye bağlı':(t.id==="pen_not"?'0,76 gol':'1 gol'))+'</div></div>';
+  });
+  h+='<p class="note">Her karar <b>mağdur taraf</b> üzerinden girilir: iki takımdan hangisi haksızlığa uğradıysa o seçilir. Aynı maçta iki takım için de karar girilebilir.</p>'
+   +'<p class="note">Karar girilmezse maç tabloya etkisiz kaydedilir. Bu normaldir; maçların çoğunda tartışmalı karar yoktur.</p></div>';
+
+  return h;
+}
+
+function vTeams(){
+  var h='<div class="card"><span class="lbl">Takımlar ('+S.teams.length+')</span><div style="margin-bottom:12px">';
+  S.teams.forEach(function(t){ h+='<span class="tag">'+esc(t)+'</span>'; });
+  h+='</div><p class="note" style="margin:0">2026-27 Süper Lig kadrosu. Sezon içinde değişmez.</p></div>';
+
+  h+='<div class="card"><span class="lbl">Ortak defter</span>';
+  if(S.binId){
+    h+='<p class="note" style="margin:0 0 10px">Bağlı depo kodu: <b>'+esc(S.binId)+'</b> — bu kodu girenler aynı defteri görür.</p>'
+     +'<div class="btnrow"><button class="btn ghost" onclick="refresh()">Şimdi eşitle</button>'
+     +'<button class="btn danger" onclick="disconnectBin()">Bağlantıyı kes</button></div>';
+  } else {
+    h+='<p class="note" style="margin:0 0 10px">Beşinizin aynı veriyi görmesi için ücretsiz bir ortak depo bağlayın. Kurulum bir kez, bir kişi tarafından yapılır:</p>'
+     +'<details style="margin-bottom:10px"><summary>Nasıl kurulur</summary><p class="note">1. npoint.io aç → “Create JSON bin”.<br>2. Kutudakileri silip <b>{}</b> yaz, kaydet.<br>3. Adresteki koda bak: npoint.io/docs/<b>KOD</b>.<br>4. Kodu aşağıya yapıştır ve gruba gönder.</p></details>'
+     +'<div class="row"><input id="binIn" placeholder="Depo kodu" value="">'
+     +'<button class="btn" style="flex:0 0 auto" onclick="connectBin()">Bağlan</button></div>';
+  }
+  h+='</div><div class="card"><span class="lbl">Yedekleme</span><div class="btnrow">'
+   +'<button class="btn ghost" onclick="exportData()">Dışa aktar</button>'
+   +'<button class="btn ghost" onclick="document.getElementById(\'impFile\').click()">İçe aktar</button>'
+   +'<input type="file" id="impFile" accept=".json" style="display:none" onchange="importData(this)"></div>'
+   +'<p class="note">Dışa aktar tüm veriyi .json olarak indirir. İçe aktar mevcut verinin yerine geçer ve bu ortak defteri beşiniz için birden değiştirir — kullanmadan önce haber ver.</p></div>';
+  return h;
+}
+
+
+/* ---------------- Hızlı karar girişi ---------------- */
+function quickPanel(m){
+  var q=S.quick;
+  var h='<div class="qpanel">';
+  var chips=[];
+  if(q.type) chips.push(typeOf(q.type).label);
+  if(q.harmed) chips.push("Mağdur: "+(q.harmed==="home"?m.home:m.away));
+  if(q.certainty) chips.push("%"+q.certainty);
+  if(chips.length) h+='<div class="qchips">'+chips.map(function(c){return '<span class="qchip">'+esc(c)+'</span>';}).join('')+'</div>';
+
+  if(!q.type){
+    h+='<p class="qstep">Ne oldu?</p><div class="qgrid">'
+     +TYPES.map(function(t){return '<button class="qbtn" onclick="quickSet(\'type\',\''+t.id+'\')">'+t.label+'</button>';}).join('')
+     +'</div>';
+  } else if(!q.harmed){
+    h+='<p class="qstep">Kim mağdur oldu?</p><div class="qgrid">'
+     +'<button class="qbtn" onclick="quickSet(\'harmed\',\'home\')">'+esc(m.home)+'</button>'
+     +'<button class="qbtn" onclick="quickSet(\'harmed\',\'away\')">'+esc(m.away)+'</button></div>';
+  } else if(!q.certainty){
+    h+='<p class="qstep">Ne kadar net bir hata?</p><div class="qgrid">'
+     +'<button class="qbtn" onclick="quickSet(\'certainty\',95)">Kesin hata<br><span style="font-size:12px;color:var(--muted)">tartışmasız</span></button>'
+     +'<button class="qbtn" onclick="quickSet(\'certainty\',60)">Tartışmalı<br><span style="font-size:12px;color:var(--muted)">yorum farkı</span></button></div>';
+  } else if(q.needMin&&!q.minute){
+    h+='<p class="qstep">Kaçıncı dakikada?</p><div class="qmin">'
+  }
+  h+='<div class="btnrow"><button class="btn ghost" style="padding:8px 14px;font-size:13px" onclick="quickCancel()">Vazgeç</button></div></div>';
+  return h;
+}
+function quickStart(id){ S.quick={id:id,type:"",harmed:"",certainty:0,minute:0,needMin:false}; render(); }
+function quickCancel(){ S.quick=null; render(); }
+function quickSet(k,v){
+  var q=S.quick; q[k]=v;
+  if(k==="type") q.needMin=(v==="red_self"||v==="red_opp");
+  if(q.type&&q.harmed&&q.certainty&&(!q.needMin||q.minute)) quickCommit();
+  else render();
+}
+function quickCommit(){
+  var q=S.quick;
+  var m=S.matches.filter(function(x){return x.id===q.id;})[0];
+  if(!m){ S.quick=null; render(); return; }
+  if(!m.decisions) m.decisions=[];
+  m.decisions.push({type:q.type,harmed:q.harmed,minute:q.minute||45,certainty:q.certainty,note:"",by:S.me});
+  S.quick=null; save(); render();
+}
+
+/* ---------------- Eylemler ---------------- */
+function setD(k,v){ S.draft[k]=v; render(); }
+function setDQ(k,v){ S.draft[k]=v; }
+function setGoal(k,el){
+  var raw=(el.value||"").replace(/^0+(?=\d)/,"");
+  if(raw!==el.value) el.value=raw;
+  S.draft[k]= raw==="" ? "" : Math.max(0,Math.min(20,parseInt(raw,10)||0));
+  var hg=+S.draft.hg||0, ag=+S.draft.ag||0;
+  var w=document.getElementById("goalWarn");
+  if(w) w.innerHTML=(hg>6||ag>6)
+    ? '<div class="warn" style="margin:0 0 10px">'+hg+'-'+ag+' girdin \u2014 emin misin? Bu skor Süper Lig\'de çok nadirdir.</div>' : "";
+}
+function addDec(){ S.draft.decs.push({type:"pen_not",harmed:"home",minute:45,certainty:80,note:"",by:S.me}); render(); }
+function setDec(i,k,v){ S.draft.decs[i][k]=v; S.draft.decs[i].by=S.me; render(); }
+function setDecQ(i,k,v){ S.draft.decs[i][k]=v; S.draft.decs[i].by=S.me; }
+function delDec(i){ S.draft.decs.splice(i,1); render(); }
+function findDupes(home,away,skipId){
+  return S.matches.filter(function(m){
+    return m.id!==skipId && m.home===home && m.away===away;
+  });
+}
+function saveMatch(){
+  var d=S.draft;
+  if(d.home===d.away){ S.msg="Ev sahibi ve deplasman aynı takım olamaz."; render(); return; }
+  if(!S.teams.length||S.teams.indexOf(d.home)<0||S.teams.indexOf(d.away)<0){
+    S.msg="Takımlardan biri listede yok. Takımlar sekmesinden ekle."; render(); return; }
+  var dup=findDupes(d.home,d.away,S.editId);
+  if(dup.length){
+    var lst=dup.map(function(m){return "  • "+m.hg+"-"+m.ag+(m.week?" ("+m.week+". hafta)":"")+(m.by?" — "+m.by:"");}).join("\n");
+    if(!confirm(d.home+" — "+d.away+" zaten kayıtlı:\n"+lst+"\n\nYine de ikinci kez eklensin mi? Eklenirse tabloda iki maç olarak sayılır."))return;
+  }
+  var rec={id:S.editId||Date.now(),week:(d.week||"").trim(),home:d.home,away:d.away,
+    hg:+d.hg||0,ag:+d.ag||0,ref:(d.ref||"").trim(),decisions:d.decs.slice(),by:S.me};
+  if(S.editId){ S.matches=S.matches.map(function(m){return m.id===S.editId?rec:m;}); }
+  else{ S.matches.push(rec); }
+  S.draft=null; S.editId=null; S.tab="matches"; save(); render();
+}
+function editMatch(id){
+  var m=S.matches.filter(function(x){return x.id===id;})[0]; if(!m)return;
+  S.draft={home:m.home,away:m.away,hg:m.hg,ag:m.ag,ref:m.ref,week:m.week,
+    decs:(m.decisions||[]).map(function(d){return {type:d.type,harmed:d.harmed,minute:d.minute,certainty:d.certainty,note:d.note||"",by:d.by};})};
+  S.editId=id; S.tab="add"; render();
+}
+function cancelEdit(){ S.draft=null; S.editId=null; S.tab="matches"; render(); }
+function delMatch(id){
+  var m=S.matches.filter(function(x){return x.id===id;})[0];
+  if(!confirm((m&&m.by&&m.by!==S.me?(m.by+" tarafından girilmiş bu maç"):"Bu maç")+" silinsin mi? Değişiklik herkeste geçerli olur."))return;
+  S.matches=S.matches.filter(function(x){return x.id!==id;}); save(); render();
+}
+function exportData(){
+  var blob=new Blob([JSON.stringify({teams:S.teams,matches:S.matches},null,2)],{type:"application/json"});
+  var a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download="dudukpayi-yedek-"+new Date().toISOString().slice(0,10)+".json";
+  a.click(); URL.revokeObjectURL(a.href);
+}
+function importData(inp){
+  var f=inp.files&&inp.files[0]; if(!f)return;
+  var rd=new FileReader();
+  rd.onload=function(){
+    try{
+      var d=JSON.parse(rd.result);
+      if(!d||!Array.isArray(d.matches)||!Array.isArray(d.teams)) throw 0;
+      if(!confirm("İçe aktarma ortak defterdeki "+S.matches.length+" maçın yerine geçecek ve beşinizi birden etkiler. Devam?")){inp.value="";return;}
+      S.teams=d.teams; S.matches=d.matches; save(); render();
+    }catch(e){ S.msg="Dosya okunamadı — geçerli bir Düdük Payı yedeği değil."; render(); }
+    inp.value="";
+  };
+  rd.readAsText(f);
+}
+
+/* ---- Haftayı toplu çekme ---- */
+function norm(s){
+  return String(s||"").toLocaleLowerCase("tr")
+    .replace(/ı/g,"i").replace(/ş/g,"s").replace(/ğ/g,"g")
+    .replace(/ü/g,"u").replace(/ö/g,"o").replace(/ç/g,"c")
+    .replace(/[^a-z0-9]/g,"");
+}
+function nearestTeam(name){
+  if(!name) return null;
+  var n=norm(name); if(!n) return null;
+  for(var i=0;i<S.teams.length;i++){ if(norm(S.teams[i])===n) return S.teams[i]; }
+  for(var j=0;j<S.teams.length;j++){
+    var u=norm(S.teams[j]);
+    if(u.indexOf(n)>=0||n.indexOf(u)>=0) return S.teams[j];
+  }
+  return null;
+}
+function isDup(home,away,week){
+  return S.matches.some(function(m){
+    return m.home===home && m.away===away && (!week || String(m.week)===String(week));
+  });
+}
+function pasteWeek(){
+  var el=document.getElementById("pasteIn"); var raw=(el.value||"").trim();
+  if(!raw){ S.msg="Önce veriyi yapıştır."; render(); return; }
+  var arr;
+  try{
+    var a=raw.indexOf("["), z=raw.lastIndexOf("]");
+    arr=JSON.parse(a>=0?raw.slice(a,z+1):raw);
+    if(!Array.isArray(arr)) arr=[arr];
+  }catch(e){ S.msg="Yapıştırdığın metin okunamadı. Köşeli parantezle başlayıp biten liste olmalı."; render(); return; }
+  var eklendi=0, mukerrer=0, sorunlu=[];
+  arr.forEach(function(x,i){
+    var H=nearestTeam(x.home), A=nearestTeam(x.away);
+    if(!H||!A){ sorunlu.push((!H?x.home:x.away)); return; }
+    if(H===A){ sorunlu.push(String(x.home)+' — iki taraf aynı takım'); return; }
+    var wk=String(x.week||"").trim();
+    if(isDup(H,A,wk)){ mukerrer++; return; }
+    S.matches.push({id:Date.now()+i,week:wk,home:H,away:A,
+      hg:Number(x.hg)||0,ag:Number(x.ag)||0,ref:(x.ref||"").trim(),decisions:[],by:S.me});
+    eklendi++;
+  });
+  el.value="";
+  var parts=[];
+  if(eklendi) parts.push(eklendi+" maç eklendi");
+  if(mukerrer) parts.push(mukerrer+" tanesi zaten kayıtlıydı");
+  if(sorunlu.length) parts.push("tanınmayan takım: "+sorunlu.join(", "));
+  S.msg = parts.length ? parts.join(", ")+"." : "Eklenecek maç bulunamadı.";
+  if(eklendi){ save(); S.tab="matches"; }
+  render();
+}
+
+
+/* ---------------- Render ---------------- */
+function render(){
+  var app=document.getElementById("app");
+  if(!S.me){ app.innerHTML=vGate(); return; }
+  var body = S.tab==="table"?vTable(): S.tab==="add"?vAdd():
+             S.tab==="big4"?vBig4(): S.tab==="matches"?vMatches(): S.tab==="refs"?vRefs():
+             S.tab==="method"?vKurallar(): vTeams();
+  app.innerHTML='<div class="wrap"><header class="head"><h1>Düdük <span>Payı.</span></h1>'
+   +'<p class="sub">Hakem kararları düzeltilseydi puan tablosu ne olurdu?</p>'
+   +'<div class="who"><span>Defteri tutan: <b>'+esc(S.me)+'</b></span>'
+   +'<button onclick="switchMe()">değiştir</button>'
+   +'<button onclick="refresh()">'+(S.sync==="…"?'eşitleniyor…':'yenile')+'</button>'
+   +'<span class="by">'+(S.sync==="ortak"?'● ortak defter':S.sync==="hata"?'● bağlantı hatası':S.sync==="…"?'●':'● yalnız bu cihaz')+'</span></div></header>'
+   +(S.msg?'<div class="'+(/eklendi|kayıtlıydı|Bağlandı|yüklendi/.test(S.msg)?'ok':'warn')+'">'+esc(S.msg)+'</div>':'')
+   +'<div class="tabwrap" id="tabwrap"><span class="tabok l">‹</span><span class="tabok r">›</span>'
+   +'<nav class="tabs" id="tabs" onscroll="tabGolge()">'+TABS.map(function(t){
+      return '<button class="tab'+(S.tab===t[0]?' on':'')+'" onclick="go(\''+t[0]+'\')">'+t[1]+'</button>';
+    }).join('')+'</nav></div><main>'+body+'</main></div>';
+  tabGolge(); tabOrtala();
+}
+/* Sekme çubuğu: kenar solmalarını kaydırma konumuna göre aç-kapa */
+function tabGolge(){
+  var n=document.getElementById("tabs"), w=document.getElementById("tabwrap");
+  if(!n||!w) return;
+  var kacak=n.scrollWidth-n.clientWidth;
+  if(kacak<6){ w.className="tabwrap"; return; }
+  var c="tabwrap";
+  if(n.scrollLeft>4) c+=" sol";
+  if(n.scrollLeft<kacak-4) c+=" sag";
+  w.className=c;
+}
+/* Seçili sekme görünür değilse ortala */
+function tabOrtala(){
+  var n=document.getElementById("tabs"); if(!n) return;
+  var a=n.querySelector(".tab.on"); if(!a) return;
+  var sol=a.offsetLeft, sag=sol+a.offsetWidth;
+  if(sol<n.scrollLeft || sag>n.scrollLeft+n.clientWidth)
+    n.scrollLeft=sol-(n.clientWidth-a.offsetWidth)/2;
+  tabGolge();
+}
+function switchMe(){ S.me=null; render(); }
+function go(t){ S.tab=t; S.msg=""; render(); }
+boot();
+</script>
+</body>
+</html>
