@@ -66,6 +66,10 @@ h1 span{color:var(--amberFill);}
 .tab.on{background:var(--ink);color:var(--ground);font-weight:600;}
 .tab:focus-visible{outline:2px solid var(--amber);outline-offset:1px;}
 
+.misafir{display:inline-flex;align-items:center;gap:6px;padding:3px 9px;border-radius:99px;
+  background:var(--amberFill);color:#1a1400;font-size:11.5px;font-weight:600;letter-spacing:.02em;}
+.misafir:before{content:"";width:6px;height:6px;border-radius:50%;background:#1a1400;opacity:.55;}
+
 /* Takım detayı */
 .trow-t{cursor:pointer;}
 .trow-t:hover .team{color:var(--amber);}
@@ -378,7 +382,14 @@ function buildTable(){
 /* ---------------- Durum ---------------- */
 var S={me:null, teams:DEFAULT_TEAMS.slice(), matches:[], tab:"table", draft:null, editId:null,
        cands:null, busy:false, msg:"", wkNum:"", wkBusy:false, wkList:null, binId:"", sync:"yerel", quick:null};
-var TABS=[["table","Tablo"],["big4","Dört Büyük"],["add","Maç ekle"],["matches","Maçlar"],
+/* Misafir kipi: adres ?misafir ile bitiyorsa uygulama salt okunur açılır.
+   Kimlik sorulmaz, yazma yolları kapanır, düzenleme sekmeleri gizlenir. */
+var MISAFIR = /(^|[?&#])misafir(=|&|$)/.test(location.search + location.hash);
+var MISAFIR_BIN = "7e5bcb28b0d4471ca91a";
+
+var TABS=MISAFIR
+ ?[["table","Tablo"],["big4","Dört Büyük"],["matches","Maçlar"],["refs","Hakemler"],["method","Kurallar"]]
+ :[["table","Tablo"],["big4","Dört Büyük"],["add","Maç ekle"],["matches","Maçlar"],
           ["refs","Hakemler"],["teams","Ayarlar"],["method","Kurallar"]];
 var KEY="dudukpayi-v1";
 function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){
@@ -392,6 +403,7 @@ function applyDoc(d){
   if(d&&Array.isArray(d.matches))S.matches=d.matches;
 }
 function localSave(){
+  if(MISAFIR) return;
   var doc=JSON.stringify({teams:S.teams,matches:S.matches});
   lsSet(KEY,doc);
   try{ if(window.storage&&window.storage.set) window.storage.set(KEY,doc,true); }catch(e){}
@@ -413,6 +425,7 @@ function localLoad(cb){
 /* --- Ortak depo: npoint.io --- */
 function binUrl(){ return S.binId?("https://api.npoint.io/"+S.binId):null; }
 function remotePush(cb){
+  if(MISAFIR){ if(cb)cb(true); return; }
   if(!binUrl()){ if(cb)cb(true); return; }
   fetch(binUrl(),{method:"POST",headers:{"Content-Type":"application/json"},
     body:JSON.stringify({teams:S.teams,matches:S.matches})})
@@ -427,6 +440,7 @@ function remotePull(cb){
 }
 
 function save(){
+  if(MISAFIR) return;
   localSave();
   if(binUrl()){
     S.sync="…";
@@ -439,7 +453,7 @@ function save(){
 }
 function boot(){
   S.me=lsGet("dp-me")||null;
-  S.binId=lsGet("dp-bin")||"";
+  S.binId=MISAFIR?MISAFIR_BIN:(lsGet("dp-bin")||"");
   try{
     if(window.storage&&window.storage.get){
       window.storage.get("dp-me",false).then(function(r){
@@ -458,6 +472,7 @@ function boot(){
   }
 }
 function setMe(n){
+  if(MISAFIR) return;
   S.me=n; lsSet("dp-me",n);
   try{ if(window.storage&&window.storage.set) window.storage.set("dp-me",n,false); }catch(e){}
   render();
@@ -469,6 +484,7 @@ function refresh(){
   remotePull(function(ok){ S.sync=ok?"ortak":"hata"; if(!ok)S.msg="Ortak depoya ulaşılamadı."; render(); });
 }
 function connectBin(){
+  if(MISAFIR) return;
   var el=document.getElementById("binIn"); var v=(el.value||"").trim();
   v=v.replace(/^https?:\/\/(www\.)?(api\.)?npoint\.io\//,"").replace(/\/$/,"");
   if(!v){ S.msg="Depo kodunu yapıştır."; render(); return; }
@@ -483,6 +499,7 @@ function connectBin(){
   .catch(function(){ S.sync=binUrl()?"hata":"yerel"; S.msg="Depo bulunamadı. Kodu kontrol et — npoint.io adresindeki son bölüm."; render(); });
 }
 function disconnectBin(){
+  if(MISAFIR) return;
   if(!confirm("Ortak depo bağlantısı kesilsin mi? Veri bu cihazda kalır."))return;
   S.binId=""; lsSet("dp-bin",""); S.sync="yerel"; render();
 }
@@ -1016,6 +1033,7 @@ function findDupes(home,away,skipId){
   });
 }
 function saveMatch(){
+  if(MISAFIR) return;
   var d=S.draft;
   if(d.home===d.away){ S.msg="Ev sahibi ve deplasman aynı takım olamaz."; render(); return; }
   if(!S.teams.length||S.teams.indexOf(d.home)<0||S.teams.indexOf(d.away)<0){
@@ -1039,6 +1057,7 @@ function editMatch(id){
 }
 function cancelEdit(){ S.draft=null; S.editId=null; S.tab="matches"; render(); }
 function delMatch(id){
+  if(MISAFIR) return;
   var m=S.matches.filter(function(x){return x.id===id;})[0];
   if(!confirm((m&&m.by&&m.by!==S.me?(m.by+" tarafından girilmiş bu maç"):"Bu maç")+" silinsin mi? Değişiklik herkeste geçerli olur."))return;
   S.matches=S.matches.filter(function(x){return x.id!==id;}); save(); render();
@@ -1051,6 +1070,7 @@ function exportData(){
   a.click(); URL.revokeObjectURL(a.href);
 }
 function importData(inp){
+  if(MISAFIR) return;
   var f=inp.files&&inp.files[0]; if(!f)return;
   var rd=new FileReader();
   rd.onload=function(){
@@ -1088,6 +1108,7 @@ function isDup(home,away,week){
   });
 }
 function pasteWeek(){
+  if(MISAFIR) return;
   var el=document.getElementById("pasteIn"); var raw=(el.value||"").trim();
   if(!raw){ S.msg="Önce veriyi yapıştır."; render(); return; }
   var arr;
@@ -1121,16 +1142,23 @@ function pasteWeek(){
 /* ---------------- Render ---------------- */
 function render(){
   var app=document.getElementById("app");
-  if(!S.me){ app.innerHTML=vGate(); return; }
+  if(!S.me && !MISAFIR){ app.innerHTML=vGate(); return; }
+  if(MISAFIR && ["add","teams"].indexOf(S.tab)>=0) S.tab="table";
   var body = S.tab==="table"?vTable(): S.tab==="add"?vAdd():
              S.tab==="big4"?vBig4(): S.tab==="matches"?vMatches(): S.tab==="refs"?vRefs():
              S.tab==="method"?vKurallar(): vTeams();
   app.innerHTML='<div class="wrap"><header class="head"><h1>Düdük <span>Payı.</span></h1>'
    +'<p class="sub">Hakem kararları düzeltilseydi puan tablosu ne olurdu?</p>'
-   +'<div class="who"><span>Defteri tutan: <b>'+esc(S.me)+'</b></span>'
-   +'<button onclick="switchMe()">değiştir</button>'
-   +'<button onclick="refresh()">'+(S.sync==="…"?'eşitleniyor…':'yenile')+'</button>'
-   +'<span class="by">'+(S.sync==="ortak"?'● ortak defter':S.sync==="hata"?'● bağlantı hatası':S.sync==="…"?'●':'● yalnız bu cihaz')+'</span></div></header>'
+   +'<div class="who">'
+   +(MISAFIR
+      ? '<span class="misafir">Misafir görünümü</span>'
+        +'<button onclick="refresh()">'+(S.sync==="…"?'yenileniyor…':'yenile')+'</button>'
+        +'<span class="by">'+(S.sync==="hata"?'● veriye ulaşılamadı':'● salt okunur')+'</span>'
+      : '<span>Defteri tutan: <b>'+esc(S.me)+'</b></span>'
+        +'<button onclick="switchMe()">değiştir</button>'
+        +'<button onclick="refresh()">'+(S.sync==="…"?'eşitleniyor…':'yenile')+'</button>'
+        +'<span class="by">'+(S.sync==="ortak"?'● ortak defter':S.sync==="hata"?'● bağlantı hatası':S.sync==="…"?'●':'● yalnız bu cihaz')+'</span>')
+   +'</div></header>'
    +(S.msg?'<div class="'+(/eklendi|kayıtlıydı|Bağlandı|yüklendi/.test(S.msg)?'ok':'warn')+'">'+esc(S.msg)+'</div>':'')
    +'<div class="tabwrap" id="tabwrap"><span class="tabok l">‹</span><span class="tabok r">›</span>'
    +'<nav class="tabs" id="tabs" onscroll="tabGolge()">'+TABS.map(function(t){
@@ -1159,7 +1187,10 @@ function tabOrtala(){
   tabGolge();
 }
 function switchMe(){ S.me=null; render(); }
-function go(t){ S.tab=t; S.msg=""; render(); }
+function go(t){
+  if(MISAFIR && ["add","teams"].indexOf(t)>=0) return;
+  S.tab=t; S.msg=""; render();
+}
 boot();
 </script>
 </body>
