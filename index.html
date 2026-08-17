@@ -827,7 +827,7 @@ function vMatches(){
       h+='<div class="warn"><b>Şüpheli skor</b><br>'
        +odd.map(function(m){
            return esc(m.home)+' '+m.hg+'-'+m.ag+' '+esc(m.away)+(m.week?' ('+esc(m.week)+'. hafta)':'')
-             +' <button class="btn danger" style="padding:3px 9px;font-size:12px;margin-left:6px" onclick="delMatch('+m.id+')">Sil</button>';
+             +(MISAFIR?'':' <button class="btn danger" style="padding:3px 9px;font-size:12px;margin-left:6px" onclick="delMatch('+m.id+')">Sil</button>');
          }).join('<br>')
        +'<br><span style="font-weight:400">Süper Lig\'de bu skorlar çok nadirdir. Yanlış girildiyse sil — averajı bozan tek şey budur.</span></div>';
     }
@@ -845,8 +845,8 @@ function vMatches(){
          +(x.by&&x.by!==m.by?'<span class="by">'+esc(x.by)+'</span>':'')
          +(x.note?'<div style="color:var(--dim)">'+esc(x.note)+'</div>':'')+'</div>';
       });
-      if(S.quick&&S.quick.id===m.id){ h+=quickPanel(m); }
-      else{
+      if(S.quick&&S.quick.id===m.id&&!MISAFIR){ h+=quickPanel(m); }
+      else if(!MISAFIR){
         h+='<div class="btnrow" style="margin-top:9px">'
          +'<button class="btn" style="padding:8px 14px;font-size:13.5px" onclick="quickStart('+m.id+')">+ Karar ekle</button>'
          +'<button class="btn ghost" style="padding:8px 12px;font-size:13px" onclick="editMatch('+m.id+')">Düzenle</button>'
@@ -994,9 +994,12 @@ function quickPanel(m){
   h+='<div class="btnrow"><button class="btn ghost" style="padding:8px 14px;font-size:13px" onclick="quickCancel()">Vazgeç</button></div></div>';
   return h;
 }
-function quickStart(id){ S.quick={id:id,type:"",harmed:"",certainty:0,minute:0,needMin:false}; render(); }
-function quickCancel(){ S.quick=null; render(); }
+function quickStart(id){
+  if(MISAFIR) return; S.quick={id:id,type:"",harmed:"",certainty:0,minute:0,needMin:false}; render(); }
+function quickCancel(){
+  if(MISAFIR) return; S.quick=null; render(); }
 function quickSet(k,v){
+  if(MISAFIR) return;
   var q=S.quick; q[k]=v;
   if(k==="type") q.needMin=(v==="red_self"||v==="red_opp");
   if(q.type&&q.harmed&&q.certainty&&(!q.needMin||q.minute)) quickCommit();
@@ -1023,10 +1026,13 @@ function setGoal(k,el){
   if(w) w.innerHTML=(hg>6||ag>6)
     ? '<div class="warn" style="margin:0 0 10px">'+hg+'-'+ag+' girdin \u2014 emin misin? Bu skor Süper Lig\'de çok nadirdir.</div>' : "";
 }
-function addDec(){ S.draft.decs.push({type:"pen_not",harmed:"home",minute:45,certainty:80,note:"",by:S.me}); render(); }
-function setDec(i,k,v){ S.draft.decs[i][k]=v; S.draft.decs[i].by=S.me; render(); }
+function addDec(){
+  if(MISAFIR) return; S.draft.decs.push({type:"pen_not",harmed:"home",minute:45,certainty:80,note:"",by:S.me}); render(); }
+function setDec(i,k,v){
+  if(MISAFIR) return; S.draft.decs[i][k]=v; S.draft.decs[i].by=S.me; render(); }
 function setDecQ(i,k,v){ S.draft.decs[i][k]=v; S.draft.decs[i].by=S.me; }
-function delDec(i){ S.draft.decs.splice(i,1); render(); }
+function delDec(i){
+  if(MISAFIR) return; S.draft.decs.splice(i,1); render(); }
 function findDupes(home,away,skipId){
   return S.matches.filter(function(m){
     return m.id!==skipId && m.home===home && m.away===away;
