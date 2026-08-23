@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#EFF2EC">
 <title>Düdük Payı — Süper Lig hakem etkisi</title>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Karla:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -70,6 +71,33 @@ h1 span{color:var(--amberFill);}
   background:var(--amberFill);color:#1a1400;font-size:11.5px;font-weight:600;letter-spacing:.02em;}
 .misafir:before{content:"";width:6px;height:6px;border-radius:50%;background:#1a1400;opacity:.55;}
 
+/* En etkili kararlar */
+.ekar{display:grid;grid-template-columns:26px minmax(0,1fr) auto;gap:10px;align-items:center;
+  padding:11px 0;border-bottom:1px solid var(--edge2);}
+.ekar:last-of-type{border-bottom:none;}
+.esira{font-family:'DM Mono',monospace;font-size:13px;color:var(--muted);text-align:center;}
+.egovde{min-width:0;}
+.ebas{font-size:14px;color:var(--ink);font-weight:600;}
+.emeta{font-size:11.5px;color:var(--muted);margin-top:2px;}
+.emag{font-size:12px;color:var(--body);margin-top:3px;}
+.edeger{font-family:'DM Mono',monospace;font-size:16px;color:var(--green);white-space:nowrap;}
+
+/* Hafta klasörleri */
+.hafta{border:1px solid var(--edge);border-radius:12px;margin-bottom:10px;overflow:hidden;
+  background:var(--panel2);}
+.hafta-bas{display:flex;align-items:center;gap:10px;padding:13px 14px;cursor:pointer;
+  -webkit-tap-highlight-color:transparent;}
+.hafta-bas:active{background:var(--edge2);}
+.hafta-ok{display:inline-flex;align-items:center;justify-content:center;
+  width:24px;height:24px;flex:0 0 auto;border-radius:50%;font-size:13px;line-height:1;
+  background:var(--amberFill);color:#1a1400;transform:rotate(-90deg);transition:transform .18s;}
+.hafta-ok.acik{transform:rotate(0deg);}
+.hafta-ad{font-family:'Oswald',sans-serif;font-size:15px;letter-spacing:.03em;
+  text-transform:uppercase;color:var(--ink);flex:1;}
+.hafta-sayi{font-family:'DM Mono',monospace;font-size:11.5px;color:var(--muted);white-space:nowrap;}
+.hafta-sayi b{color:var(--amber);font-weight:500;}
+.hafta-ic{padding:0 10px 10px;}
+
 /* Takım detayı */
 .trow-t{cursor:pointer;}
 .trow-t:hover .team{color:var(--amber);}
@@ -96,7 +124,7 @@ h1 span{color:var(--amberFill);}
   letter-spacing:.08em;color:var(--ink);margin-bottom:14px;display:block;}
 
 /* Form */
-label,.flabel{font-size:13px;font-weight:500;color:var(--muted);display:block;margin-bottom:5px;}
+label{font-size:13px;font-weight:500;color:var(--muted);display:block;margin-bottom:5px;}
 input,select{width:100%;background:var(--panel);border:1.5px solid var(--edge);color:var(--ink);
   padding:12px;border-radius:9px;font-size:16px;font-family:'Karla',sans-serif;line-height:1.3;}
 input::placeholder{color:var(--dim);}
@@ -188,16 +216,21 @@ details .note{margin-top:10px;}
 .qpanel{background:var(--panel2);border:1.5px solid var(--amberFill);border-radius:11px;padding:15px;margin-top:10px;}
 .qchips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;}
 .qchip{background:var(--panel);border:1px solid var(--edge);border-radius:20px;padding:5px 12px;font-size:13px;color:var(--body);}
-.qmin{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:10px;}
+.qmin{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px;}
+.qelle{display:flex;gap:7px;align-items:stretch;}
+.qelle input{flex:1;min-width:0;}
+.qelle .btn{flex:0 0 auto;padding:0 16px;}
 .qmin .qbtn{padding:11px 2px;min-height:44px;font-family:'DM Mono',monospace;font-size:13px;}
 @media (max-width:400px){
   h1{font-size:36px;} .tab{font-size:13px;padding:11px 2px;}
   .card{padding:16px;} .thead,.trow{grid-template-columns:22px 1fr 44px 78px 50px;gap:6px;}
 }
 @media (prefers-reduced-motion:reduce){.bar{transition:none;}}
-/* Koyu mod: sistem koyu temadaysa kendi paletimizle uyum */
+/* Koyu tema. İki yolla açılır:
+   1) kullanıcı elle seçmişse  html[data-tema="koyu"]
+   2) hiç seçmemişse ve sistemi koyuysa  html:not([data-tema]) */
 @media (prefers-color-scheme:dark){
-  :root{
+  html:not([data-tema]){
     --ground:#0B1210; --panel:#141D19; --panel2:#1B2721;
     --edge:#2C3B33; --edge2:#243129; --line:#2C3B33;
     --ink:#EDF2EA; --body:#C3D0C6; --muted:#94A499; --dim:#6E8076;
@@ -205,15 +238,37 @@ details .note{margin-top:10px;}
     --green:#4ADE80; --greenFill:#35C46B;
     --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.32);
   }
-  .warn{background:#3A2320;border-color:#6E3B34;color:#F0AFA6;}
-  .ok{background:#173129;border-color:#2C5A49;color:#7BDDBB;}
-  .tab.on{background:var(--amberFill);color:#0B1210;}
-  button.btn{background:var(--amberFill);color:#0B1210;}
-  button.ghost{background:var(--panel2);color:var(--body);border-color:var(--edge);}
-  button.danger{background:none;color:var(--red);border-color:#6E3B34;}
-  input,select{background:var(--panel2);border-color:var(--edge);color:var(--ink);}
-  input:focus,select:focus{border-color:var(--amberFill);}
+  html:not([data-tema]) .warn{background:#3A2320;border-color:#6E3B34;color:#F0AFA6;}
+  html:not([data-tema]) .ok{background:#173129;border-color:#2C5A49;color:#7BDDBB;}
+  html:not([data-tema]) .tab.on{background:var(--amberFill);color:#0B1210;}
+  html:not([data-tema]) button.btn{background:var(--amberFill);color:#0B1210;}
+  html:not([data-tema]) button.ghost{background:var(--panel2);color:var(--body);border-color:var(--edge);}
+  html:not([data-tema]) button.danger{background:none;color:var(--red);border-color:#6E3B34;}
+  html:not([data-tema]) input,html:not([data-tema]) select{background:var(--panel2);border-color:var(--edge);color:var(--ink);}
+  html:not([data-tema]) input:focus,html:not([data-tema]) select:focus{border-color:var(--amberFill);}
 }
+html[data-tema="koyu"]{
+    --ground:#0B1210; --panel:#141D19; --panel2:#1B2721;
+    --edge:#2C3B33; --edge2:#243129; --line:#2C3B33;
+    --ink:#EDF2EA; --body:#C3D0C6; --muted:#94A499; --dim:#6E8076;
+    --amber:#F2C230; --amberFill:#E8B62C; --red:#F0685A; --redFill:#DB5A4C;
+    --green:#4ADE80; --greenFill:#35C46B;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.32);
+  }
+html[data-tema="koyu"] .warn{background:#3A2320;border-color:#6E3B34;color:#F0AFA6;}
+html[data-tema="koyu"] .ok{background:#173129;border-color:#2C5A49;color:#7BDDBB;}
+html[data-tema="koyu"] .tab.on{background:var(--amberFill);color:#0B1210;}
+html[data-tema="koyu"] button.btn{background:var(--amberFill);color:#0B1210;}
+html[data-tema="koyu"] button.ghost{background:var(--panel2);color:var(--body);border-color:var(--edge);}
+html[data-tema="koyu"] button.danger{background:none;color:var(--red);border-color:#6E3B34;}
+html[data-tema="koyu"] input,html[data-tema="koyu"] select{background:var(--panel2);border-color:var(--edge);color:var(--ink);}
+html[data-tema="koyu"] input:focus,html[data-tema="koyu"] select:focus{border-color:var(--amberFill);}
+
+/* Tema düğmesi */
+.temabtn{background:none;border:1px solid var(--edge);color:var(--muted);
+  padding:5px 10px;border-radius:99px;font-size:11.5px;cursor:pointer;font-family:inherit;}
+.temabtn:hover{color:var(--ink);border-color:var(--line);}
+
 /* Zemini ortama bırakma: her durumda kendi rengimiz */
 html,body{background:var(--ground) !important;min-height:100%;}
 </style>
@@ -380,7 +435,7 @@ function buildTable(){
 }
 
 /* ---------------- Durum ---------------- */
-var S={me:null, teams:DEFAULT_TEAMS.slice(), matches:[], tab:"table", draft:null, editId:null,
+var S={tema:null, me:null, teams:DEFAULT_TEAMS.slice(), matches:[], tab:"table", draft:null, editId:null,
        cands:null, busy:false, msg:"", wkNum:"", wkBusy:false, wkList:null, binId:"", sync:"yerel", quick:null};
 /* Misafir kipi: adres ?misafir ile bitiyorsa uygulama salt okunur açılır.
    Kimlik sorulmaz, yazma yolları kapanır, düzenleme sekmeleri gizlenir. */
@@ -398,9 +453,43 @@ function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){
 /* --- Yerel katman: localStorage (Netlify) + window.storage (Claude önizleme) --- */
 function lsGet(k){try{return window.localStorage?localStorage.getItem(k):null;}catch(e){return null;}}
 function lsSet(k,v){try{if(window.localStorage)localStorage.setItem(k,v);}catch(e){}}
+function lsDel(k){try{if(window.localStorage)localStorage.removeItem(k);}catch(e){}}
+/* Ortak defter elle düzenlenebildiği için dışarıdan gelen veri güvenilmezdir.
+   Skorlar, dakika ve kesinlik makul aralığa çekilir; bozuk kayıt elenir. */
+function tamSayi(v,alt,ust,varsayilan){
+  var n=parseInt(v,10);
+  if(!isFinite(n)) n=varsayilan;
+  return Math.max(alt,Math.min(ust,n));
+}
+function macTemizle(liste){
+  if(!Array.isArray(liste)) return [];
+  var gecerliTip={};
+  TYPES.forEach(function(t){ gecerliTip[t.id]=1; });
+  return liste.filter(function(m){ return m && typeof m==="object" && m.home && m.away && m.home!==m.away; })
+   .map(function(m){
+     var kararlar=Array.isArray(m.decisions)?m.decisions:[];
+     return {
+       id: m.id||Date.now()+Math.floor(Math.random()*1000),
+       home: String(m.home), away: String(m.away),
+       hg: tamSayi(m.hg,0,99,0), ag: tamSayi(m.ag,0,99,0),
+       ref: m.ref==null?"":String(m.ref),
+       week: m.week==null?"":String(m.week),
+       by: m.by==null?"":String(m.by),
+       decisions: kararlar.filter(function(d){ return d && gecerliTip[d.type]; })
+        .map(function(d){
+          return { type:d.type,
+                   harmed: d.harmed==="away"?"away":"home",
+                   minute: tamSayi(d.minute,0,120,45),
+                   certainty: tamSayi(d.certainty,0,100,80),
+                   note: d.note==null?"":String(d.note) };
+        })
+     };
+   });
+}
+
 function applyDoc(d){
   if(d&&Array.isArray(d.teams)&&d.teams.length)S.teams=d.teams;
-  if(d&&Array.isArray(d.matches))S.matches=d.matches;
+  if(d&&Array.isArray(d.matches))S.matches=macTemizle(d.matches);
 }
 function localSave(){
   if(MISAFIR) return;
@@ -452,6 +541,8 @@ function save(){
   }
 }
 function boot(){
+  S.tema=temaOku();
+  temaUygula();
   S.me=lsGet("dp-me")||null;
   S.binId=MISAFIR?MISAFIR_BIN:(lsGet("dp-bin")||"");
   try{
@@ -618,6 +709,92 @@ function vBig4(){
   }
 
   return h;
+}
+
+/* Tek bir kararın gerçek katkısı: o karar olmasaydı maç ne olurdu?
+   Kararı listeden çıkarıp maçı yeniden hesaplar, farkı alır.
+   Kararlar birbiriyle etkileştiği için bu "çıkarınca ne değişir" ölçüsüdür;
+   tek tek katkıların toplamı maçın toplam etkisine birebir eşit olmayabilir. */
+function kararEtkisi(m, i){
+  var hepsi=(m.decisions||[]);
+  var tam=matchImpact(m);
+  var eksik=matchImpact({home:m.home,away:m.away,hg:m.hg,ag:m.ag,
+    decisions:hepsi.filter(function(_,k){return k!==i;})});
+  var r=realPts(m.hg,m.ag);
+  function kirpik(im,taraf){
+    var ham=(taraf==="home"?im.mid.home:im.mid.away);
+    var gercek=(taraf==="home"?r[0]:r[1]);
+    return Math.max(0,Math.min(3,gercek+ham));
+  }
+  return { home: kirpik(tam,"home")-kirpik(eksik,"home"),
+           away: kirpik(tam,"away")-kirpik(eksik,"away") };
+}
+
+/* Sezonun en çok puan oynatan kararları */
+function enEtkiliKararlar(limit){
+  var liste=[];
+  S.matches.forEach(function(m){
+    (m.decisions||[]).forEach(function(d,i){
+      var e=kararEtkisi(m,i);
+      /* Bir karar puanı iki taraf arasında oynatır; ölçü toplam oynatılan puandır */
+      var buyuk=Math.abs(e.home)+Math.abs(e.away);
+      if(buyuk<0.005) return;
+      var magdur=(d.harmed==="home")?m.home:m.away;
+      liste.push({ mac:m, karar:d, magdur:magdur,
+        rakip:(d.harmed==="home")?m.away:m.home,
+        deger:buyuk, magdurKazanc:(d.harmed==="home")?e.home:e.away });
+    });
+  });
+  liste.sort(function(a,b){return b.deger-a.deger;});
+  return limit?liste.slice(0,limit):liste;
+}
+
+function vEtkili(){
+  var liste=enEtkiliKararlar(10);
+  if(!liste.length) return '<div class="card"><div class="empty">Henüz puan oynatan karar yok.<br>Maç ve karar ekledikçe bu liste dolar.</div></div>';
+  var h='<div class="card"><span class="lbl">En çok puan oynatan kararlar</span>';
+  liste.forEach(function(x,i){
+    var d=x.karar;
+    h+='<div class="ekar">'
+     +'<div class="esira">'+(i+1)+'</div>'
+     +'<div class="egovde">'
+     +'<div class="ebas">'+esc(typeOf(d.type).label)+'</div>'
+     +'<div class="emeta">'+esc(x.mac.home)+' '+x.mac.hg+'-'+x.mac.ag+' '+esc(x.mac.away)
+     +' · '+esc(d.minute)+'′ · %'+esc(d.certainty)
+     +(x.mac.ref?' · '+esc(x.mac.ref):'')+'</div>'
+     +'<div class="emag">mağdur: <b>'+esc(x.magdur)+'</b> '
+     +'<span style="color:var(--green)">'+(x.magdurKazanc>=0?'+':'')+x.magdurKazanc.toFixed(2)+'</span>'
+     +' · '+esc(x.rakip)+' <span style="color:var(--red)">'+(x.deger-Math.abs(x.magdurKazanc)>0.005
+        ? '−'+(x.deger-Math.abs(x.magdurKazanc)).toFixed(2) : '0.00')+'</span></div>'
+     +'</div>'
+     +'<div class="edeger">'+x.deger.toFixed(2)+'</div>'
+     +'</div>';
+  });
+  h+='<p class="note">Sağdaki sayı, o karar hiç yaşanmasaydı iki takım arasında oynayacak <b>toplam puandır</b>. '
+   +'Altta mağdurun kazancı ve rakibin kaybı ayrı ayrı yazılıdır. '
+   +'Kararlar birbirini etkilediği için tek tek katkıların toplamı maçın toplam etkisine birebir eşit olmayabilir.</p></div>';
+  h+='<div class="btnrow"><button class="btn ghost" onclick="etkiliKopyala()">Listeyi kopyala</button></div>';
+  return h;
+}
+
+function etkiliKopyala(){
+  var liste=enEtkiliKararlar(10);
+  if(!liste.length){ S.msg="Kopyalanacak karar yok."; render(); return; }
+  var metin='Düdük Payı — bu sezon en çok puan oynatan kararlar\n\n'
+   + liste.map(function(x,i){
+      return (i+1)+'. '+typeOf(x.karar.type).label+' — '+x.magdur
+        +' ('+x.mac.home+' '+x.mac.hg+'-'+x.mac.ag+' '+x.mac.away+', '+x.karar.minute+"′"
+        +(x.mac.ref?', '+x.mac.ref:'')+') '
+        +x.deger.toFixed(2)+' puan oynattı (mağdur '+(x.magdurKazanc>=0?'+':'')+x.magdurKazanc.toFixed(2)+')';
+     }).join('\n');
+  var bitir=function(ok){ S.msg=ok?'Liste panoya kopyalandı.':'Kopyalanamadı.'; render(); };
+  try{
+    if(navigator.clipboard&&navigator.clipboard.writeText){
+      navigator.clipboard.writeText(metin).then(function(){bitir(true);},function(){bitir(false);});
+      return;
+    }
+  }catch(e){}
+  bitir(false);
 }
 
 function takimAc(ad){ S.acikTakim = (S.acikTakim===ad?null:ad); render(); }
@@ -831,11 +1008,45 @@ function vMatches(){
          }).join('<br>')
        +'<br><span style="font-weight:400">Süper Lig\'de bu skorlar çok nadirdir. Yanlış girildiyse sil — averajı bozan tek şey budur.</span></div>';
     }
-    S.matches.slice().reverse().forEach(function(m){
+    /* Haftalara ayır: en yeni hafta üstte, hafta numarası olmayanlar sona */
+    var haftalar={}, sirasiz=[];
+    S.matches.forEach(function(m){
+      var w=String(m.week||"").trim();
+      if(!w){ sirasiz.push(m); return; }
+      (haftalar[w]=haftalar[w]||[]).push(m);
+    });
+    var anahtarlar=Object.keys(haftalar).sort(function(a,b){
+      var x=parseInt(a,10), y=parseInt(b,10);
+      if(isFinite(x)&&isFinite(y)) return y-x;
+      return String(b).localeCompare(String(a),"tr");
+    });
+    if(sirasiz.length) { haftalar["__yok"]=sirasiz; anahtarlar.push("__yok"); }
+
+    anahtarlar.forEach(function(w){
+      var grup=haftalar[w];
+      /* Hiçbiri seçilmemişse en yeni hafta açık gelsin */
+      var acik = S.acikHafta ? (S.acikHafta===w) : (w===anahtarlar[0]);
+      var kararSay=0, etki=0;
+      grup.forEach(function(m){
+        kararSay+=(m.decisions||[]).length;
+        var im=matchImpact(m);
+        etki+=Math.abs(im.mid.home)+Math.abs(im.mid.away);
+      });
+      h+='<div class="hafta">'
+       +'<div class="hafta-bas" data-w="'+esc(w)+'" onclick="haftaAc(this.getAttribute(\'data-w\'))" role="button" tabindex="0">'
+       +'<span class="hafta-ok'+(acik?' acik':'')+'">▾</span>'
+       +'<span class="hafta-ad">'+(w==="__yok"?"Haftası girilmemiş":esc(w)+". hafta")+'</span>'
+       +'<span class="hafta-sayi">'+grup.length+' maç'
+       +(kararSay?' · '+kararSay+' karar':'')
+       +(etki>0.05?' · <b>'+etki.toFixed(1)+' puan</b>':'')
+       +'</span></div>';
+      if(!acik){ h+='</div>'; return; }
+      h+='<div class="hafta-ic">';
+      grup.slice().reverse().forEach(function(m){
       var im=matchImpact(m), n=(m.decisions||[]).length;
       h+='<div class="match'+(n?' has':'')+'"><div class="mtop"><span class="mteams">'+esc(m.home)+' — '+esc(m.away)+'</span>'
        +'<span class="mscore">'+m.hg+':'+m.ag+'</span></div><div class="mmeta">'
-       +(m.week?esc(m.week)+'. hafta · ':'')+esc(m.ref||"hakem girilmedi")
+       +esc(m.ref||"hakem girilmedi")
        +(n?(' · etki '+(im.mid.home>=0?'+':'')+im.mid.home.toFixed(2)+' / '+(im.mid.away>=0?'+':'')+im.mid.away.toFixed(2)):'')
        +(m.by?'<span class="by">'+esc(m.by)+'</span>':'')
        +'</div>';
@@ -853,11 +1064,16 @@ function vMatches(){
          +'<button class="btn danger" style="padding:8px 12px;font-size:13px" onclick="delMatch('+m.id+')">Sil</button></div>';
       }
       h+='</div>';
-    });
-    h+='</div>';
+      });               /* maç döngüsü */
+      h+='</div></div>';  /* hafta-ic + hafta */
+    });                 /* hafta döngüsü */
+    h+='</div>';        /* kart */
   }
   return h;
 }
+
+/* Hafta klasörünü aç-kapa */
+function haftaAc(w){ S.acikHafta = (S.acikHafta===w ? null : w); render(); }
 
 function vRefs(){
   var map={};
@@ -876,13 +1092,22 @@ function vRefs(){
     ent(m.home).bosa+=im.mid.bosaHome; ent(m.away).bosa+=im.mid.bosaAway;
     ent(m.home).fazla+=im.mid.fazlaHome; ent(m.away).fazla+=im.mid.fazlaAway;
   });
-  var refs=Object.keys(map).map(function(k){return map[k];}).sort(function(a,b){return b.decs-a.decs;});
-  if(!refs.length) return '<div class="card"><div class="empty">Hakem adı girilmiş maç yok.<br>Maç eklerken hakem alanını doldurursan burada döküm çıkar.</div></div>';
-  var h='';
+  /* Hakemleri karar sayısına göre değil, oynattıkları toplam puana göre sırala */
+  Object.keys(map).forEach(function(k){
+    var r=map[k], t=0;
+    Object.keys(r.byTeam).forEach(function(tk){ t+=Math.abs(r.byTeam[tk].pts); });
+    r.agirlik=t/2;   /* her maçta iki taraf sayıldığı için ikiye böl */
+  });
+  var refs=Object.keys(map).map(function(k){return map[k];})
+    .sort(function(a,b){ return (b.agirlik-a.agirlik) || (b.decs-a.decs); });
+  if(!refs.length) return vEtkili()+'<div class="card"><div class="empty">Hakem adı girilmiş maç yok.<br>Maç eklerken hakem alanını doldurursan burada döküm çıkar.</div></div>';
+  var h=vEtkili();
   refs.forEach(function(r){
     h+='<div class="card"><div class="mtop" style="margin-bottom:9px">'
      +'<span style="font-family:\'Oswald\',sans-serif;font-weight:600;font-size:19px;letter-spacing:.02em">'+esc(r.name)+'</span>'
-     +'<span class="mscore">'+r.games+' maç · '+r.decs+' karar</span></div>';
+     +'<span class="mscore">'+r.games+' maç · '+r.decs+' karar'
+     +(r.agirlik>0.05?' · <b style="color:var(--amber)">'+r.agirlik.toFixed(1)+' puan</b>':'')
+     +'</span></div>';
     Object.keys(r.byTeam).filter(function(k){return r.byTeam[k].f||r.byTeam[k].a;})
       .sort(function(a,b){return (r.byTeam[b].a-r.byTeam[b].f)-(r.byTeam[a].a-r.byTeam[a].f);})
       .forEach(function(k){
@@ -988,21 +1213,37 @@ function quickPanel(m){
     h+='<p class="qstep">Ne kadar net bir hata?</p><div class="qgrid">'
      +'<button class="qbtn" onclick="quickSet(\'certainty\',95)">Kesin hata<br><span style="font-size:12px;color:var(--muted)">tartışmasız</span></button>'
      +'<button class="qbtn" onclick="quickSet(\'certainty\',60)">Tartışmalı<br><span style="font-size:12px;color:var(--muted)">yorum farkı</span></button></div>';
-  } else if(q.needMin&&!q.minute){
-    h+='<p class="qstep">Kaçıncı dakikada?</p><div class="qmin">'
+  } else if(!q.minute){
+    h+='<p class="qstep">Kaçıncı dakikada?</p>'
+     +'<div class="qmin">'
+     +[10,25,45,60,75,85].map(function(x){
+        return '<button class="qbtn" onclick="quickSet(\'minute\','+x+')">'+x+"′</button>";
+       }).join('')
+     +'</div>'
+     +'<div class="qelle">'
+     +'<input id="qdk" type="number" inputmode="numeric" min="1" max="120" placeholder="ya da yaz (1-120)">'
+     +'<button class="btn" onclick="quickDakika()">Tamam</button>'
+     +'</div>'
+     +'<input id="qnot" type="text" maxlength="120" placeholder="Not (isteğe bağlı) — ör. VAR incelemedi" style="width:100%;margin-top:9px">';
   }
   h+='<div class="btnrow"><button class="btn ghost" style="padding:8px 14px;font-size:13px" onclick="quickCancel()">Vazgeç</button></div></div>';
   return h;
 }
 function quickStart(id){
-  if(MISAFIR) return; S.quick={id:id,type:"",harmed:"",certainty:0,minute:0,needMin:false}; render(); }
+  if(MISAFIR) return; S.quick={id:id,type:"",harmed:"",certainty:0,minute:0}; render(); }
+function quickDakika(){
+  if(MISAFIR) return;
+  var el=document.getElementById("qdk");
+  var v=parseInt(el&&el.value,10);
+  if(!isFinite(v)||v<1||v>120){ S.msg="Dakika 1 ile 120 arasında olmalı."; render(); return; }
+  quickSet("minute", v);
+}
 function quickCancel(){
   if(MISAFIR) return; S.quick=null; render(); }
 function quickSet(k,v){
   if(MISAFIR) return;
   var q=S.quick; q[k]=v;
-  if(k==="type") q.needMin=(v==="red_self"||v==="red_opp");
-  if(q.type&&q.harmed&&q.certainty&&(!q.needMin||q.minute)) quickCommit();
+  if(q.type&&q.harmed&&q.certainty&&q.minute) quickCommit();
   else render();
 }
 function quickCommit(){
@@ -1010,7 +1251,9 @@ function quickCommit(){
   var m=S.matches.filter(function(x){return x.id===q.id;})[0];
   if(!m){ S.quick=null; render(); return; }
   if(!m.decisions) m.decisions=[];
-  m.decisions.push({type:q.type,harmed:q.harmed,minute:q.minute||45,certainty:q.certainty,note:"",by:S.me});
+  var nt=document.getElementById("qnot");
+  m.decisions.push({type:q.type,harmed:q.harmed,minute:q.minute||45,certainty:q.certainty,
+                    note:(nt&&nt.value||"").slice(0,120),by:S.me});
   S.quick=null; save(); render();
 }
 
@@ -1084,7 +1327,7 @@ function importData(inp){
       var d=JSON.parse(rd.result);
       if(!d||!Array.isArray(d.matches)||!Array.isArray(d.teams)) throw 0;
       if(!confirm("İçe aktarma ortak defterdeki "+S.matches.length+" maçın yerine geçecek ve beşinizi birden etkiler. Devam?")){inp.value="";return;}
-      S.teams=d.teams; S.matches=d.matches; save(); render();
+      S.teams=d.teams; S.matches=macTemizle(d.matches); save(); render();
     }catch(e){ S.msg="Dosya okunamadı — geçerli bir Düdük Payı yedeği değil."; render(); }
     inp.value="";
   };
@@ -1159,10 +1402,12 @@ function render(){
    +(MISAFIR
       ? '<span class="misafir">Misafir görünümü</span>'
         +'<button onclick="refresh()">'+(S.sync==="…"?'yenileniyor…':'yenile')+'</button>'
+        +'<button class="temabtn" onclick="temaDegis()">'+temaEtiket()+'</button>'
         +'<span class="by">'+(S.sync==="hata"?'● veriye ulaşılamadı':'● salt okunur')+'</span>'
       : '<span>Defteri tutan: <b>'+esc(S.me)+'</b></span>'
         +'<button onclick="switchMe()">değiştir</button>'
         +'<button onclick="refresh()">'+(S.sync==="…"?'eşitleniyor…':'yenile')+'</button>'
+        +'<button class="temabtn" onclick="temaDegis()">'+temaEtiket()+'</button>'
         +'<span class="by">'+(S.sync==="ortak"?'● ortak defter':S.sync==="hata"?'● bağlantı hatası':S.sync==="…"?'●':'● yalnız bu cihaz')+'</span>')
    +'</div></header>'
    +(S.msg?'<div class="'+(/eklendi|kayıtlıydı|Bağlandı|yüklendi/.test(S.msg)?'ok':'warn')+'">'+esc(S.msg)+'</div>':'')
@@ -1192,6 +1437,31 @@ function tabOrtala(){
     n.scrollLeft=sol-(n.clientWidth-a.offsetWidth)/2;
   tabGolge();
 }
+/* ---- Tema ----
+   S.tema: "acik" | "koyu" | null (null = sistem ayarına uy) */
+function temaOku(){ return lsGet("dp-tema")||null; }
+function temaUygula(){
+  /* Açılış yolunda çalışır; burada bir hata tüm uygulamayı düşürür. */
+  try{
+    var t=S.tema;
+    var h=document.documentElement;
+    if(h){ if(t) h.setAttribute("data-tema",t); else h.removeAttribute("data-tema"); }
+    var koyu = t==="koyu" ||
+      (!t && window.matchMedia && window.matchMedia("(prefers-color-scheme:dark)").matches);
+    var mt=document.querySelector?document.querySelector('meta[name="theme-color"]'):null;
+    if(mt) mt.setAttribute("content", koyu?"#0B1210":"#EFF2EC");
+  }catch(e){}
+}
+function temaDegis(){
+  /* sıra: sistem -> açık -> koyu -> sistem */
+  S.tema = S.tema===null ? "acik" : S.tema==="acik" ? "koyu" : null;
+  if(S.tema) lsSet("dp-tema",S.tema); else lsDel("dp-tema");
+  temaUygula(); render();
+}
+function temaEtiket(){
+  return S.tema===null ? "Tema: sistem" : S.tema==="acik" ? "Tema: açık" : "Tema: koyu";
+}
+
 function switchMe(){ S.me=null; render(); }
 function go(t){
   if(MISAFIR && ["add","teams"].indexOf(t)>=0) return;
