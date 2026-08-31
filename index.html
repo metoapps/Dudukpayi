@@ -71,6 +71,24 @@ h1 span{color:var(--amberFill);}
   background:var(--amberFill);color:#1a1400;font-size:11.5px;font-weight:600;letter-spacing:.02em;}
 .misafir:before{content:"";width:6px;height:6px;border-radius:50%;background:#1a1400;opacity:.55;}
 
+/* Etki özeti */
+.ozet-bas{font-family:'Oswald',sans-serif;font-size:12.5px;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--muted);margin:14px 0 8px;}
+.ozet-sat{display:grid;grid-template-columns:22px minmax(0,1fr) auto;gap:9px;align-items:center;
+  padding:9px 0;border-bottom:1px solid var(--edge2);}
+.ozet-sat:last-of-type{border-bottom:none;}
+.ozet-kafa{padding:4px 0;border-bottom:1px solid var(--edge);}
+.ozet-kafa .ozet-ad,.ozet-kafa i{font-size:10.5px;color:var(--dim);letter-spacing:.06em;text-transform:uppercase;font-style:normal;}
+.ozet-no{font-family:'DM Mono',monospace;font-size:12px;color:var(--muted);text-align:center;}
+.ozet-ad{font-size:14px;color:var(--ink);min-width:0;}
+.ozet-alt{display:block;font-size:11px;color:var(--muted);margin-top:2px;}
+.ozet-alt b{color:var(--body);font-weight:600;}
+.ozet-puan{font-family:'DM Mono',monospace;font-size:16px;color:var(--amber);white-space:nowrap;}
+.ozet-ik{display:grid;grid-template-columns:56px 56px;gap:4px;text-align:right;}
+.ozet-ik i{font-family:'DM Mono',monospace;font-size:14px;font-style:normal;}
+.ozet-ik i.art{color:var(--red);}
+.ozet-ik i.eksi{color:var(--green);}
+
 /* En etkili kararlar */
 .ekar{display:grid;grid-template-columns:26px minmax(0,1fr) auto;gap:10px;align-items:center;
   padding:11px 0;border-bottom:1px solid var(--edge2);}
@@ -730,13 +748,13 @@ function kararEtkisi(m, i){
            away: kirpik(tam,"away")-kirpik(eksik,"away") };
 }
 
-/* Sezonun en çok puan oynatan kararları */
+/* Sezonun skora en çok etki eden kararları */
 function enEtkiliKararlar(limit){
   var liste=[];
   S.matches.forEach(function(m){
     (m.decisions||[]).forEach(function(d,i){
       var e=kararEtkisi(m,i);
-      /* Bir karar puanı iki taraf arasında oynatır; ölçü toplam oynatılan puandır */
+      /* Bir karar puanı iki taraf arasında kaydırır; ölçü toplam etkilenen puandır */
       var buyuk=Math.abs(e.home)+Math.abs(e.away);
       if(buyuk<0.005) return;
       var magdur=(d.harmed==="home")?m.home:m.away;
@@ -751,8 +769,8 @@ function enEtkiliKararlar(limit){
 
 function vEtkili(){
   var liste=enEtkiliKararlar(10);
-  if(!liste.length) return '<div class="card"><div class="empty">Henüz puan oynatan karar yok.<br>Maç ve karar ekledikçe bu liste dolar.</div></div>';
-  var h='<div class="card"><span class="lbl">En çok puan oynatan kararlar</span>';
+  if(!liste.length) return '<div class="card"><div class="empty">Henüz skoru değiştiren karar yok.<br>Maç ve karar ekledikçe bu liste dolar.</div></div>';
+  var h='<div class="card"><span class="lbl">Maç skorunu en çok değiştiren kararlar</span>';
   liste.forEach(function(x,i){
     var d=x.karar;
     h+='<div class="ekar">'
@@ -780,12 +798,12 @@ function vEtkili(){
 function etkiliKopyala(){
   var liste=enEtkiliKararlar(10);
   if(!liste.length){ S.msg="Kopyalanacak karar yok."; render(); return; }
-  var metin='Düdük Payı — bu sezon en çok puan oynatan kararlar\n\n'
+  var metin='Düdük Payı — bu sezon maç skorunu en çok değiştiren kararlar\n\n'
    + liste.map(function(x,i){
       return (i+1)+'. '+typeOf(x.karar.type).label+' — '+x.magdur
         +' ('+x.mac.home+' '+x.mac.hg+'-'+x.mac.ag+' '+x.mac.away+', '+x.karar.minute+"′"
         +(x.mac.ref?', '+x.mac.ref:'')+') '
-        +x.deger.toFixed(2)+' puan oynattı (mağdur '+(x.magdurKazanc>=0?'+':'')+x.magdurKazanc.toFixed(2)+')';
+        +x.deger.toFixed(2)+' puan etki (mağdur '+(x.magdurKazanc>=0?'+':'')+x.magdurKazanc.toFixed(2)+')';
      }).join('\n');
   var bitir=function(ok){ S.msg=ok?'Liste panoya kopyalandı.':'Kopyalanamadı.'; render(); };
   try{
@@ -824,8 +842,8 @@ function takimDetay(ad){
      +'<span>'+(x.evde?'':'@ ')+esc(x.rakip)+' <b class="dskor">'+x.skor+'</b></span>'
      +'<span class="'+(x.etki>=0?'dup':'ddown')+'">'+(etkili?(x.etki>=0?'+':'')+x.etki.toFixed(2):'—')+'</span></div>'
      +'<div class="dmeta">'+(x.hafta?esc(x.hafta)+'. hafta · ':'')+esc(x.hakem||'hakem girilmedi')
-     +(x.bosa>0.05?' · <span style="color:var(--amber)">karşılıksız '+x.bosa.toFixed(2)+'</span>':'')
-     +(x.fazla>0.05?' · <span style="color:var(--red)">geri alınamayan '+x.fazla.toFixed(2)+'</span>':'')
+     +(x.bosa>0.05?' · <span style="color:var(--amber)" title="Kazanırken uğradığı, tabloya yansımayan hata">sonuca yansımadı +'+x.bosa.toFixed(2)+'</span>':'')
+     +(x.fazla>0.05?' · <span style="color:var(--red)" title="Kaybederken yararlandığı, tabloya yansımayan hata">sonuca yansımadı −'+x.fazla.toFixed(2)+'</span>':'')
      +'</div>';
     x.kararlar.forEach(function(k){
       h+='<div class="dkarar"><span class="dnokta" style="background:'+(k.lehte?'var(--greenFill)':'var(--redFill)')+'"></span>'+esc(k.metin)+'</div>';
@@ -883,22 +901,6 @@ function vTable(){
      +(move!==0?'<span class="mv">'+(move>0?'▲':'▼')+Math.abs(move)+'</span>':'')+'</div></div>';
     if(acik) h+=takimDetay(r.name);
   });
-  var bosaList=T.adj.filter(function(r){return r.bosa>0.05||r.fazla>0.05;})
-    .sort(function(a,b){return (b.bosa+b.fazla)-(a.bosa+a.fazla);});
-  if(bosaList.length){
-    h+='<div style="margin-top:18px;padding-top:14px;border-top:1px solid var(--line)">'
-     +'<span class="lbl" style="display:block;margin-bottom:8px">Karşılıksız mağduriyet</span>'
-     +'<p class="note" style="margin-top:0">Bir maçtan en fazla 3, en az 0 puan alınır. Bu sınırların dışına taşan etki tabloya yazılamaz ama silinmez de. '
-     +'<b style="color:var(--amber)">Sarı</b>: maçı zaten kazandığı için puana dönüşemeyen mağduriyet. '
-     +'<b style="color:var(--red)">Kırmızı</b>: maçı zaten kaybettiği için geri alınamayan avantaj.</p>';
-    bosaList.forEach(function(r){
-      h+='<div class="trow"><div class="pos"></div><div class="team">'+esc(r.name)+'</div>'
-       +'<div class="pts" style="color:var(--amber)">'+(r.bosa>0.05?r.bosa.toFixed(1):'')+'</div>'
-       +'<div class="ctr"></div>'
-       +'<div class="pts" style="color:var(--red)">'+(r.fazla>0.05?r.fazla.toFixed(1):'')+'</div></div>';
-    });
-    h+='</div>';
-  }
   h+='<div class="btnrow" style="margin-top:14px"><button class="btn ghost" onclick="ozetKopyala()">Özeti kopyala</button></div></div>';
 
   var gcols='24px minmax(0,1fr) 30px 44px 40px 40px';
@@ -1075,6 +1077,131 @@ function vMatches(){
 /* Hafta klasörünü aç-kapa */
 function haftaAc(w){ S.acikHafta = (S.acikHafta===w ? null : w); render(); }
 
+/* Karar bazında etki dökümü: hangi hakem, hangi takım lehine/aleyhine skoru kaç puan etkiledi.
+   kararEtkisi() kararı çıkarıp maçı yeniden hesaplar; 0'a yakın çıkanlar skoru değiştirmemiştir. */
+function etkiDokumu(){
+  var takim={}, hakem={}, toplamKarar=0, etkiliKarar=0;
+  function tEnt(t){ if(!takim[t]) takim[t]={ad:t,kazanc:0,kayip:0,lehKarar:0,aleyhKarar:0,etkiliLeh:0,etkiliAleyh:0}; return takim[t]; }
+  function hEnt(h){ if(!hakem[h]) hakem[h]={ad:h,mac:0,karar:0,etkili:0,puan:0,yansimayan:0,lehte:{}}; return hakem[h]; }
+
+  S.matches.forEach(function(m){
+    var hk=(m.ref||"").trim()||"(hakem girilmedi)";
+    var H=hEnt(hk); H.mac++;
+    /* Kırpma yüzünden tabloya yazılamayan etki de hakemin siciline işler */
+    var im0=matchImpact(m);
+    H.yansimayan += (im0.mid.bosaHome||0)+(im0.mid.bosaAway||0)+(im0.mid.fazlaHome||0)+(im0.mid.fazlaAway||0);
+    (m.decisions||[]).forEach(function(d,i){
+      toplamKarar++; H.karar++;
+      var e=kararEtkisi(m,i);
+      var magdur=(d.harmed==="home")?m.home:m.away;
+      var rakip=(d.harmed==="home")?m.away:m.home;
+      var kazanan=(d.harmed==="home")?e.home:e.away;   /* mağdurun geri alacağı puan */
+      var kaybeden=(d.harmed==="home")?e.away:e.home;  /* rakibin kaybedeceği puan */
+      var buyuk=Math.abs(e.home)+Math.abs(e.away);
+
+      tEnt(magdur).aleyhKarar++; tEnt(rakip).lehKarar++;
+      if(buyuk>0.05){
+        etkiliKarar++; H.etkili++; H.puan+=buyuk;
+        tEnt(magdur).etkiliAleyh++; tEnt(rakip).etkiliLeh++;
+        /* mağdurun kaybettiği = düzeltilince kazanacağı; rakibin haksız kazancı = düşecek puanı */
+        tEnt(magdur).kayip += Math.max(0,kazanan);
+        tEnt(rakip).kazanc += Math.max(0,-kaybeden);
+        H.lehte[rakip]=(H.lehte[rakip]||0)+buyuk;
+      }
+    });
+  });
+  var tl=Object.keys(takim).map(function(k){return takim[k];})
+    .filter(function(t){return t.kazanc>0.05||t.kayip>0.05||t.etkiliLeh||t.etkiliAleyh;})
+    .sort(function(a,b){return (b.kazanc+b.kayip)-(a.kazanc+a.kayip);});
+  var hl=Object.keys(hakem).map(function(k){return hakem[k];})
+    .filter(function(h){return h.mac>0;})
+    .map(function(h){
+      h.macBasi = h.puan/h.mac;
+      /* Dengesizlik: kararları tek bir takımın lehine mi toplanmış? */
+      var v=Object.keys(h.lehte).map(function(t){return h.lehte[t];});
+      var top=v.reduce(function(a,b){return a+b;},0);
+      h.dengesizlik = top>0 ? Math.max.apply(null,v)/top : 0;
+      return h;
+    })
+    .sort(function(a,b){return b.macBasi-a.macBasi;});
+  return {takimlar:tl, hakemler:hl, toplamKarar:toplamKarar, etkiliKarar:etkiliKarar};
+}
+
+function vEtkiOzet(){
+  var d=etkiDokumu();
+  if(!d.toplamKarar) return '';
+  var h='<div class="card"><span class="lbl">Skora etki eden kararlar</span>'
+   +'<p class="note" style="margin-top:0">Girilen <b>'+d.toplamKarar+'</b> kararın <b>'+d.etkiliKarar+'</b> tanesi puan tablosunu değiştirdi. '
+   +'Kalanı kayda geçti ama sonucu etkilemedi — farkı kapatamayacak kadar geç ya da küçüktü.</p>';
+
+  if(d.hakemler.length){
+    var ASGARI=3;
+    var yeter=d.hakemler.filter(function(r){return r.mac>=ASGARI;});
+    var az=d.hakemler.filter(function(r){return r.mac<ASGARI;});
+
+    function satir(r,i,ters){
+      var enCok=Object.keys(r.lehte).sort(function(a,b){return r.lehte[b]-r.lehte[a];})[0];
+      var pay=r.dengesizlik;
+      return '<div class="ozet-sat">'
+       +'<span class="ozet-no">'+(i+1)+'</span>'
+       +'<span class="ozet-ad">'+esc(r.ad)
+       +'<span class="ozet-alt">'+r.mac+' maç · '+r.karar+' karar'
+       +(r.etkili?', '+r.etkili+"'i skoru değiştirdi":'')
+       +(r.yansimayan>0.05?' · <span style="color:var(--amber)">'+r.yansimayan.toFixed(1)+' sonuca yansımadı</span>':'')
+       +(enCok&&pay>0.7?'<br><span style="color:var(--red)">kararlarının '+Math.round(pay*100)+'%\'i tek takım lehine: '+esc(enCok)+'</span>'
+         :(enCok?' · en çok <b>'+esc(enCok)+'</b> lehine':''))
+       +'</span></span>'
+       +'<span class="ozet-puan"'+(ters?' style="color:var(--green)"':'')+'>'+r.macBasi.toFixed(2)+'</span></div>';
+    }
+
+    if(yeter.length>=2){
+      var kotu=yeter.slice(0,Math.min(5,yeter.length));
+      var iyi=yeter.slice().reverse().slice(0,Math.min(5,yeter.length));
+      h+='<div class="ozet-bas">Maç skorlarına en çok etki edenler</div>'
+       +'<div class="ozet-sat ozet-kafa"><span class="ozet-no"></span><span class="ozet-ad">Hakem</span>'
+       +'<span class="ozet-ik" style="grid-template-columns:70px"><i>maç başı</i></span></div>';
+      kotu.forEach(function(r,i){ h+=satir(r,i,false); });
+      h+='<div class="ozet-bas" style="margin-top:16px">Maç skorlarına en az etki edenler</div>';
+      iyi.forEach(function(r,i){ h+=satir(r,i,true); });
+      h+='<p class="note">Sıralama, hakemin <b>maç başına skorlara ettiği etkiye</b> göre. Toplam yerine maç başı alınır, yoksa çok maç yöneten hakem haksız yere üste çıkar. '
+       +'En az '+ASGARI+' maç yönetenler sıralanır.</p>'
+       +'<p class="note" style="color:var(--amber)">Alt sırada olmak iyi hakemlik demek değildir; o hakemin maçlarında <b>kayda geçmiş hata olmaması</b> demektir. '
+       +'Kimse o maçları izleyip karar girmediyse hakem tertemiz görünür. Bu liste ancak kayıt eksiksizse anlamlıdır.</p>';
+    } else {
+      h+='<div class="ozet-bas">Hakemler</div>';
+      d.hakemler.forEach(function(r,i){ h+=satir(r,i,false); });
+      h+='<p class="note">Sıralama için hakem başına en az '+ASGARI+' maç gerekiyor. Veri biriktikçe skorlara en çok ve en az etki edenler ayrı ayrı listelenecek.</p>';
+    }
+    if(yeter.length>=2&&az.length){
+      h+='<div class="ozet-bas" style="margin-top:16px">Henüz yeterli maçı yok</div>';
+      az.forEach(function(r){
+        h+='<div class="ozet-sat"><span class="ozet-no"></span><span class="ozet-ad">'+esc(r.ad)
+         +'<span class="ozet-alt">'+r.mac+' maç · '+r.karar+' karar</span></span>'
+         +'<span class="ozet-puan" style="color:var(--dim)">'+r.macBasi.toFixed(2)+'</span></div>';
+      });
+    }
+  }
+
+  if(d.takimlar.length){
+    h+='<div class="ozet-bas" style="margin-top:18px">Takımlar — haksız kazanç ve mağduriyet</div>'
+     +'<div class="ozet-sat ozet-kafa"><span class="ozet-no"></span><span class="ozet-ad">Takım</span>'
+     +'<span class="ozet-ik"><i>kazanç</i><i>kayıp</i></span></div>';
+    d.takimlar.forEach(function(t,i){
+      h+='<div class="ozet-sat">'
+       +'<span class="ozet-no">'+(i+1)+'</span>'
+       +'<span class="ozet-ad">'+esc(t.ad)
+       +'<span class="ozet-alt">'+t.etkiliLeh+' lehine · '+t.etkiliAleyh+' aleyhine etkili karar</span></span>'
+       +'<span class="ozet-ik">'
+       +'<i class="art">'+(t.kazanc>0.05?'+'+t.kazanc.toFixed(1):'—')+'</i>'
+       +'<i class="eksi">'+(t.kayip>0.05?'−'+t.kayip.toFixed(1):'—')+'</i></span></div>';
+    });
+    h+='<p class="note"><b style="color:var(--red)">Kazanç</b>: kararlar düzeltilseydi bu takımdan düşecek puan. '
+     +'<b style="color:var(--green)">Kayıp</b>: düzeltilseydi bu takıma eklenecek puan. '
+     +'İkisi de doluysa takım hem kazanmış hem kaybetmiştir; tablodaki tek rakam bunların farkıdır.</p>';
+  }
+  return h+'</div>';
+}
+
 function vRefs(){
   var map={};
   S.matches.forEach(function(m){
@@ -1092,7 +1219,7 @@ function vRefs(){
     ent(m.home).bosa+=im.mid.bosaHome; ent(m.away).bosa+=im.mid.bosaAway;
     ent(m.home).fazla+=im.mid.fazlaHome; ent(m.away).fazla+=im.mid.fazlaAway;
   });
-  /* Hakemleri karar sayısına göre değil, oynattıkları toplam puana göre sırala */
+  /* Hakemleri karar sayısına göre değil, skorlara ettikleri toplam etkiye göre sırala */
   Object.keys(map).forEach(function(k){
     var r=map[k], t=0;
     Object.keys(r.byTeam).forEach(function(tk){ t+=Math.abs(r.byTeam[tk].pts); });
@@ -1100,8 +1227,8 @@ function vRefs(){
   });
   var refs=Object.keys(map).map(function(k){return map[k];})
     .sort(function(a,b){ return (b.agirlik-a.agirlik) || (b.decs-a.decs); });
-  if(!refs.length) return vEtkili()+'<div class="card"><div class="empty">Hakem adı girilmiş maç yok.<br>Maç eklerken hakem alanını doldurursan burada döküm çıkar.</div></div>';
-  var h=vEtkili();
+  if(!refs.length) return vEtkiOzet()+vEtkili()+'<div class="card"><div class="empty">Hakem adı girilmiş maç yok.<br>Maç eklerken hakem alanını doldurursan burada döküm çıkar.</div></div>';
+  var h=vEtkiOzet()+vEtkili();
   refs.forEach(function(r){
     h+='<div class="card"><div class="mtop" style="margin-bottom:9px">'
      +'<span style="font-family:\'Oswald\',sans-serif;font-weight:600;font-size:19px;letter-spacing:.02em">'+esc(r.name)+'</span>'
@@ -1144,9 +1271,11 @@ function vKurallar(){
    +'<p class="note"><b>Kesinlik yüzdesi ağırlık verir.</b> %100 net bir hata tam etki eder, %60 tartışmalı bir karar 0,6 katsayıyla girer.</p></div>';
 
   h+='<div class="card"><span class="lbl">Puan sınırı</span>'
-   +'<p class="note" style="margin-top:0">Bir maçtan en fazla 3, en az 0 puan alınır. Model bu sınırların dışına taşarsa fazlası puana yazılmaz — ama silinmez de:</p>'
-   +'<p class="note"><b style="color:var(--amber)">Karşılıksız mağduriyet:</b> takım maçı zaten kazanmıştır, hak ettiği fazlası puana dönüşemez. Hata yapılmıştır, sonuca yansımamıştır.</p>'
-   +'<p class="note"><b style="color:var(--red)">Geri alınamayan avantaj:</b> takım maçı zaten kaybetmiştir, kararlardan kazandığı düşülemez.</p></div>';
+   +'<p class="note" style="margin-top:0">Futbolda bir maçtan en fazla 3, en az 0 puan alınır ve düzeltme bu sınırı aşamaz. '
+   +'Zaten kazanmış bir takımın lehine ekleyecek, zaten kaybetmiş bir takımın aleyhine düşecek puan yoktur.</p>'
+   +'<p class="note">Böyle bir hata tabloyu değiştirmez ama kayboldu sayılmaz: takıma dokununca açılan dökümde ve '
+   +'hakemin karnesinde <b style="color:var(--amber)">sonuca yansımadı</b> notuyla görünür. '
+   +'Hakemin siciline işler, sıralamaya karışmaz.</p></div>';
 
   h+='<div class="card"><span class="lbl">Tabloları okuma</span>'
    +'<p class="note" style="margin-top:0"><b>Tablo.</b> <span style="color:var(--green)">Yeşil</span> kararlar yüzünden puan kaybetmiş, düzeltilince kazanıyor. <span style="color:var(--red)">Kırmızı</span> kararlardan puan kazanmış. ▲▼ gerçek sıralamaya göre yer değişimi. Bir takıma dokununca sayısının hangi maçlardan geldiği açılır.</p>'
