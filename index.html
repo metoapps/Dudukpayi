@@ -71,6 +71,14 @@ h1 span{color:var(--amberFill);}
   background:var(--amberFill);color:#1a1400;font-size:11.5px;font-weight:600;letter-spacing:.02em;}
 .misafir:before{content:"";width:6px;height:6px;border-radius:50%;background:#1a1400;opacity:.55;}
 
+/* Sıralama seçici */
+.siraSec{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px;}
+.siraSec button{background:var(--panel2);border:1px solid var(--edge);color:var(--muted);
+  padding:9px 6px;border-radius:9px;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;}
+.siraSec button.on{background:var(--amberFill);border-color:var(--amber);color:#1a1400;}
+.ozet-ik i.ana{color:var(--amber);font-weight:600;}
+.ozet-ik i.sol{color:var(--dim);}
+
 /* Etki özeti */
 .ozet-bas{font-family:'Oswald',sans-serif;font-size:12.5px;letter-spacing:.08em;
   text-transform:uppercase;color:var(--muted);margin:14px 0 8px;}
@@ -455,7 +463,7 @@ function buildTable(){
 /* ---------------- Durum ---------------- */
 var S={tema:null, me:null, teams:DEFAULT_TEAMS.slice(), matches:[], tab:"table", draft:null, editId:null,
        cands:null, busy:false, msg:"", wkNum:"", wkBusy:false, wkList:null, binId:"", sync:"yerel", quick:null,
-       cekHaftaNo:"", cekBusy:false, cekMsg:"", cekHata:false};
+       cekHaftaNo:"", cekBusy:false, cekMsg:"", cekHata:false, hakemSira:"hata"};
 /* Misafir kipi: adres ?misafir ile bitiyorsa uygulama salt okunur açılır.
    Kimlik sorulmaz, yazma yolları kapanır, düzenleme sekmeleri gizlenir. */
 var MISAFIR = /(^|[?&#])misafir(=|&|$)/.test(location.search + location.hash);
@@ -1101,7 +1109,9 @@ function haftaAc(w){ S.acikHafta = (S.acikHafta===w ? null : w); render(); }
 function etkiDokumu(){
   var takim={}, hakem={}, toplamKarar=0, etkiliKarar=0;
   function tEnt(t){ if(!takim[t]) takim[t]={ad:t,kazanc:0,kayip:0,lehKarar:0,aleyhKarar:0,etkiliLeh:0,etkiliAleyh:0}; return takim[t]; }
-  function hEnt(h){ if(!hakem[h]) hakem[h]={ad:h,mac:0,karar:0,etkili:0,puan:0,yansimayan:0,lehte:{}}; return hakem[h]; }
+  /* agirlik: kesinlikle ağırlıklandırılmış hata hacmi (sonucu ne olursa olsun)
+     lehteSayi: kararların yönü, sayı bazlı — sonuçsuz hatalar da taraflılığa sayılır */
+  function hEnt(h){ if(!hakem[h]) hakem[h]={ad:h,mac:0,karar:0,etkili:0,puan:0,agirlik:0,yansimayan:0,lehte:{},lehteSayi:{}}; return hakem[h]; }
 
   S.matches.forEach(function(m){
     var hk=(m.ref||"").trim()||"(hakem girilmedi)";
@@ -1111,6 +1121,9 @@ function etkiDokumu(){
     H.yansimayan += (im0.mid.bosaHome||0)+(im0.mid.bosaAway||0)+(im0.mid.fazlaHome||0)+(im0.mid.fazlaAway||0);
     (m.decisions||[]).forEach(function(d,i){
       toplamKarar++; H.karar++;
+      /* Hata hacmi: %100 kesin hata 1,0 sayılır, %60 tartışmalı olan 0,6.
+         Sonuca etkisi olmasa bile hakemin siciline yazılır. */
+      H.agirlik += Math.max(0,Math.min(100, d.certainty||0))/100;
       var e=kararEtkisi(m,i);
       var magdur=(d.harmed==="home")?m.home:m.away;
       var rakip=(d.harmed==="home")?m.away:m.home;
@@ -1119,6 +1132,7 @@ function etkiDokumu(){
       var buyuk=Math.abs(e.home)+Math.abs(e.away);
 
       tEnt(magdur).aleyhKarar++; tEnt(rakip).lehKarar++;
+      H.lehteSayi[rakip]=(H.lehteSayi[rakip]||0)+1;
       if(buyuk>0.05){
         etkiliKarar++; H.etkili++; H.puan+=buyuk;
         tEnt(magdur).etkiliAleyh++; tEnt(rakip).etkiliLeh++;
@@ -1135,14 +1149,18 @@ function etkiDokumu(){
   var hl=Object.keys(hakem).map(function(k){return hakem[k];})
     .filter(function(h){return h.mac>0;})
     .map(function(h){
-      h.macBasi = h.puan/h.mac;
-      /* Dengesizlik: kararları tek bir takımın lehine mi toplanmış? */
-      var v=Object.keys(h.lehte).map(function(t){return h.lehte[t];});
+      h.macBasi = h.puan/h.mac;            /* maç başına puan etkisi */
+      h.macBasiHata = h.agirlik/h.mac;     /* maç başına ağırlıklı hata */
+      /* Taraflılık artık karar SAYISINA göre — sonuçsuz hatalar da sayılıyor */
+      var v=Object.keys(h.lehteSayi).map(function(t){return h.lehteSayi[t];});
       var top=v.reduce(function(a,b){return a+b;},0);
       h.dengesizlik = top>0 ? Math.max.apply(null,v)/top : 0;
+      h.enCokLehte = top>0 ? Object.keys(h.lehteSayi).sort(function(a,b){return h.lehteSayi[b]-h.lehteSayi[a];})[0] : null;
       return h;
     })
-    .sort(function(a,b){return b.macBasi-a.macBasi;});
+    .sort(function(a,b){
+      return S.hakemSira==="etki" ? (b.macBasi-a.macBasi) : (b.macBasiHata-a.macBasiHata);
+    });
   return {takimlar:tl, hakemler:hl, toplamKarar:toplamKarar, etkiliKarar:etkiliKarar};
 }
 
@@ -1155,48 +1173,55 @@ function vEtkiOzet(){
 
   if(d.hakemler.length){
     var ASGARI=3;
+    var etkiSira = S.hakemSira==="etki";
     var yeter=d.hakemler.filter(function(r){return r.mac>=ASGARI;});
     var az=d.hakemler.filter(function(r){return r.mac<ASGARI;});
 
-    function satir(r,i,ters){
-      var enCok=Object.keys(r.lehte).sort(function(a,b){return r.lehte[b]-r.lehte[a];})[0];
-      var pay=r.dengesizlik;
+    function satir(r,i){
+      var pay=r.dengesizlik, enCok=r.enCokLehte;
+      /* Sıralama ölçüsü vurgulu, diğeri soluk — hangi listeye baktığın belli olsun */
       return '<div class="ozet-sat">'
        +'<span class="ozet-no">'+(i+1)+'</span>'
        +'<span class="ozet-ad">'+esc(r.ad)
        +'<span class="ozet-alt">'+r.mac+' maç · '+r.karar+' karar'
-       +(r.etkili?', '+r.etkili+"'i skoru değiştirdi":'')
+       +(r.etkili?' ('+r.etkili+"'i skoru değiştirdi)":' (hiçbiri skoru değiştirmedi)')
        +(r.yansimayan>0.05?' · <span style="color:var(--amber)">'+r.yansimayan.toFixed(1)+' sonuca yansımadı</span>':'')
-       +(enCok&&pay>0.7?'<br><span style="color:var(--red)">kararlarının '+Math.round(pay*100)+'%\'i tek takım lehine: '+esc(enCok)+'</span>'
+       +(enCok&&pay>0.7&&r.karar>=3?'<br><span style="color:var(--red)">kararlarının %'+Math.round(pay*100)+"'i tek takım lehine: "+esc(enCok)+'</span>'
          :(enCok?' · en çok <b>'+esc(enCok)+'</b> lehine':''))
        +'</span></span>'
-       +'<span class="ozet-puan"'+(ters?' style="color:var(--green)"':'')+'>'+r.macBasi.toFixed(2)+'</span></div>';
+       +'<span class="ozet-ik" style="grid-template-columns:52px 52px">'
+       +'<i class="'+(etkiSira?'sol':'ana')+'">'+r.macBasiHata.toFixed(2)+'</i>'
+       +'<i class="'+(etkiSira?'ana':'sol')+'">'+r.macBasi.toFixed(2)+'</i>'
+       +'</span></div>';
     }
 
-    if(yeter.length>=2){
-      var kotu=yeter.slice(0,Math.min(5,yeter.length));
-      var iyi=yeter.slice().reverse().slice(0,Math.min(5,yeter.length));
-      h+='<div class="ozet-bas">Maç skorlarına en çok etki edenler</div>'
-       +'<div class="ozet-sat ozet-kafa"><span class="ozet-no"></span><span class="ozet-ad">Hakem</span>'
-       +'<span class="ozet-ik" style="grid-template-columns:70px"><i>maç başı</i></span></div>';
-      kotu.forEach(function(r,i){ h+=satir(r,i,false); });
-      h+='<div class="ozet-bas" style="margin-top:16px">Maç skorlarına en az etki edenler</div>';
-      iyi.forEach(function(r,i){ h+=satir(r,i,true); });
-      h+='<p class="note">Sıralama, hakemin <b>maç başına skorlara ettiği etkiye</b> göre. Toplam yerine maç başı alınır, yoksa çok maç yöneten hakem haksız yere üste çıkar. '
-       +'En az '+ASGARI+' maç yönetenler sıralanır.</p>'
-       +'<p class="note" style="color:var(--amber)">Alt sırada olmak iyi hakemlik demek değildir; o hakemin maçlarında <b>kayda geçmiş hata olmaması</b> demektir. '
-       +'Kimse o maçları izleyip karar girmediyse hakem tertemiz görünür. Bu liste ancak kayıt eksiksizse anlamlıdır.</p>';
+    h+='<div class="ozet-bas">Hakem karnesi</div>'
+     +'<div class="siraSec">'
+     +'<button class="'+(etkiSira?'':'on')+'" onclick="hakemSirala(\'hata\')">Hata sayısına göre</button>'
+     +'<button class="'+(etkiSira?'on':'')+'" onclick="hakemSirala(\'etki\')">Puan etkisine göre</button>'
+     +'</div>'
+     +'<div class="ozet-sat ozet-kafa"><span class="ozet-no"></span><span class="ozet-ad">Hakem</span>'
+     +'<span class="ozet-ik" style="grid-template-columns:52px 52px"><i>hata<br>/maç</i><i>puan<br>/maç</i></span></div>';
+
+    if(yeter.length){
+      yeter.forEach(function(r,i){ h+=satir(r,i); });
     } else {
-      h+='<div class="ozet-bas">Hakemler</div>';
-      d.hakemler.forEach(function(r,i){ h+=satir(r,i,false); });
-      h+='<p class="note">Sıralama için hakem başına en az '+ASGARI+' maç gerekiyor. Veri biriktikçe skorlara en çok ve en az etki edenler ayrı ayrı listelenecek.</p>';
+      d.hakemler.forEach(function(r,i){ h+=satir(r,i); });
     }
-    if(yeter.length>=2&&az.length){
-      h+='<div class="ozet-bas" style="margin-top:16px">Henüz yeterli maçı yok</div>';
+
+    h+='<p class="note"><b>Hata/maç</b>: hakemin maç başına yaptığı hata sayısı, kesinlikle ağırlıklandırılmış. %100 kesin bir hata 1,0 sayılır, %60 tartışmalı olan 0,6. '
+     +'<b>Sonuca etkisi olmasa bile sayılır</b> — 5-0 biten maçta yapılan on hata tabloyu değiştirmez ama hakemlik kalitesini gösterir.</p>'
+     +'<p class="note"><b>Puan/maç</b>: o hataların puan tablosunu maç başına ne kadar değiştirdiği. Bu ikisi ayrı sorulardır; bir hakem çok hata yapıp tabloyu hiç değiştirmemiş olabilir, ya da tek bir hatayla bir maçın sonucunu çevirmiş olabilir.</p>'
+     +(yeter.length?'':'<p class="note">En az '+ASGARI+' maç yöneten hakemler ayrı sıralanır; şu an hiçbiri bu sayıya ulaşmadı.</p>')
+     +'<p class="note" style="color:var(--amber)">Listede altta olmak iyi hakemlik demek değildir; o hakemin maçlarında <b>kayda geçmiş hata olmaması</b> demektir. '
+     +'Kimse o maçları izleyip karar girmediyse hakem tertemiz görünür. Bu tablo ancak kayıt eksiksizse anlamlıdır.</p>';
+
+    if(yeter.length&&az.length){
+      h+='<div class="ozet-bas" style="margin-top:16px">Henüz '+ASGARI+' maçı yok</div>';
       az.forEach(function(r){
         h+='<div class="ozet-sat"><span class="ozet-no"></span><span class="ozet-ad">'+esc(r.ad)
          +'<span class="ozet-alt">'+r.mac+' maç · '+r.karar+' karar</span></span>'
-         +'<span class="ozet-puan" style="color:var(--dim)">'+r.macBasi.toFixed(2)+'</span></div>';
+         +'<span class="ozet-ik" style="grid-template-columns:52px 52px"><i class="sol">'+r.macBasiHata.toFixed(2)+'</i><i class="sol">'+r.macBasi.toFixed(2)+'</i></span></div>';
       });
     }
   }
@@ -1453,6 +1478,7 @@ function editMatch(id){
   S.editId=id; S.tab="add"; render();
 }
 function cancelEdit(){ S.draft=null; S.editId=null; S.tab="matches"; render(); }
+function hakemSirala(n){ S.hakemSira = (n==="etki"?"etki":"hata"); render(); }
 function skorOnayla(id){
   if(MISAFIR) return;
   var m=S.matches.filter(function(x){return x.id===id;})[0];
