@@ -1876,8 +1876,7 @@ function render(){
    +'<div class="tabwrap" id="tabwrap"><span class="tabok l">‹</span><span class="tabok r">›</span>'
    +'<nav class="tabs" id="tabs" onscroll="tabGolge()">'+TABS.map(function(t){
       return '<button class="tab'+(S.tab===t[0]?' on':'')+'" onclick="go(\''+t[0]+'\')">'+(ICO[t[0]]||'')+t[1]+'</button>';
-    }).join('')+'</nav></div><main>'+body+'</main>'
-   +'<footer class="foot"><b>Düdük Payı</b> · MIT. Tek HTML dosyası.<br>Kulüp armaları yok. Skorlar TFF; tartışmalı karar senin kaydın.</footer></div>';
+    }).join('')+'</nav></div><main>'+body+'</main></div>';
   tabGolge(); tabOrtala();
 }
 function tabGolge(){
