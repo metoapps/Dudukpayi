@@ -454,7 +454,8 @@ function buildTable(){
 
 /* ---------------- Durum ---------------- */
 var S={tema:null, me:null, teams:DEFAULT_TEAMS.slice(), matches:[], tab:"table", draft:null, editId:null,
-       cands:null, busy:false, msg:"", wkNum:"", wkBusy:false, wkList:null, binId:"", sync:"yerel", quick:null};
+       cands:null, busy:false, msg:"", wkNum:"", wkBusy:false, wkList:null, binId:"", sync:"yerel", quick:null,
+       cekHaftaNo:"", cekBusy:false, cekMsg:"", cekHata:false};
 /* Misafir kipi: adres ?misafir ile bitiyorsa uygulama salt okunur açılır.
    Kimlik sorulmaz, yazma yolları kapanır, düzenleme sekmeleri gizlenir. */
 var MISAFIR = /(^|[?&#])misafir(=|&|$)/.test(location.search + location.hash);
@@ -493,6 +494,7 @@ function macTemizle(liste){
        ref: m.ref==null?"":String(m.ref),
        week: m.week==null?"":String(m.week),
        by: m.by==null?"":String(m.by),
+       skorOnay: !!m.skorOnay,
        decisions: kararlar.filter(function(d){ return d && gecerliTip[d.type]; })
         .map(function(d){
           return { type:d.type,
@@ -937,6 +939,21 @@ function vAdd(){
      +'<button class="btn ghost" style="padding:6px 12px;font-size:13px" onclick="cancelEdit()">Vazgeç</button></div>';
   }
   {
+    /* ---------------- İnternetten skor çekme (deneysel) ----------------
+       TheSportsDB'nin ücretsiz "123" anahtarı ile Süper Lig (id 4339) haftasını çeker.
+       Hakem bilgisi bu kaynakta yok — o alan boş bırakılır, elle doldurulur.
+       Sonuç doğrudan kaydedilmez: yapıştırma kutusuna JSON olarak dolar,
+       kullanıcı gözden geçirip her zamanki "Maçları ekle" akışından onaylar. */
+    h+='<div class="card"'+(S.cekBusy?' style="opacity:.7"':'')+'><span class="lbl">İnternetten skor çek (deneysel)</span>'
+     +'<p class="note" style="margin-top:0">Hafta numarasını gir, o haftanın oynanmış maçlarını TheSportsDB\'den çekmeyi dener. '
+     +'Hakem bilgisi bu kaynakta yok, elle eklemen gerekir. Takım adı eşleşmezse o satır boş bırakılır, sen tamamlarsın.</p>'
+     +'<div class="row" style="margin-bottom:10px">'
+     +'<input id="cekHafta" type="number" inputmode="numeric" min="1" max="34" placeholder="Hafta no" style="max-width:110px" value="'+esc(S.cekHaftaNo||"")+'">'
+     +'<button class="btn ghost" style="flex:0 0 auto" onclick="internettenCek()" '+(S.cekBusy?"disabled":"")+'>'+(S.cekBusy?"Çekiliyor…":"Çek")+'</button>'
+     +'</div>'
+     +(S.cekMsg?'<p class="note" style="margin:0 0 10px;color:'+(S.cekHata?"var(--red)":"var(--muted)")+'">'+esc(S.cekMsg)+'</p>':'')
+     +'</div>';
+
     h+='<div class="card"><span class="lbl">Haftayı toplu ekle</span>'
      +'<p class="note" style="margin:0 0 10px">Hafta verisini yapıştır — üstüne yazmaz, ekler.</p>'
      +'<textarea id="pasteIn" placeholder=\'[{"home":"Beşiktaş","away":"Eyüpspor","hg":1,"ag":0,"ref":"Hakem adı","week":"1"}]\' style="width:100%;min-height:96px;background:var(--panel2);border:1.5px solid var(--edge);color:var(--ink);border-radius:9px;padding:12px;font-family:\'DM Mono\',monospace;font-size:13px;line-height:1.5"></textarea>'
@@ -1001,14 +1018,16 @@ function vMatches(){
        +dupPairs.map(function(k){return esc(k.replace("|"," — "));}).join(", ")
        +'. Bu, puan tablosunu bozar — fazlasını sil.</div>';
     }
-    var odd=S.matches.filter(function(m){return (m.hg+m.ag)>=7 || m.hg>=6 || m.ag>=6;});
+    /* onaylanmış maçlar bir daha uyarı olarak çıkmaz — averajı bozmuyor, sadece nadir bir skor */
+    var odd=S.matches.filter(function(m){return ((m.hg+m.ag)>=7 || m.hg>=6 || m.ag>=6) && !m.skorOnay;});
     if(odd.length){
       h+='<div class="warn"><b>Şüpheli skor</b><br>'
        +odd.map(function(m){
            return esc(m.home)+' '+m.hg+'-'+m.ag+' '+esc(m.away)+(m.week?' ('+esc(m.week)+'. hafta)':'')
-             +(MISAFIR?'':' <button class="btn danger" style="padding:3px 9px;font-size:12px;margin-left:6px" onclick="delMatch('+m.id+')">Sil</button>');
+             +(MISAFIR?'':' <button class="btn danger" style="padding:3px 9px;font-size:12px;margin-left:6px" onclick="delMatch('+m.id+')">Sil</button>'
+                       +' <button class="btn ghost" style="padding:3px 9px;font-size:12px;margin-left:4px" onclick="skorOnayla('+m.id+')">Doğru, uyarma</button>');
          }).join('<br>')
-       +'<br><span style="font-weight:400">Süper Lig\'de bu skorlar çok nadirdir. Yanlış girildiyse sil — averajı bozan tek şey budur.</span></div>';
+       +'<br><span style="font-weight:400">Süper Lig\'de bu skorlar çok nadirdir. Yanlış girildiyse sil, doğruysa "Doğru, uyarma" ile bir daha çıkmasın.</span></div>';
     }
     /* Haftalara ayır: en yeni hafta üstte, hafta numarası olmayanlar sona */
     var haftalar={}, sirasiz=[];
@@ -1434,6 +1453,11 @@ function editMatch(id){
   S.editId=id; S.tab="add"; render();
 }
 function cancelEdit(){ S.draft=null; S.editId=null; S.tab="matches"; render(); }
+function skorOnayla(id){
+  if(MISAFIR) return;
+  var m=S.matches.filter(function(x){return x.id===id;})[0];
+  if(m){ m.skorOnay=true; save(); render(); }
+}
 function delMatch(id){
   if(MISAFIR) return;
   var m=S.matches.filter(function(x){return x.id===id;})[0];
@@ -1470,6 +1494,53 @@ function norm(s){
     .replace(/ü/g,"u").replace(/ö/g,"o").replace(/ç/g,"c")
     .replace(/[^a-z0-9]/g,"");
 }
+/* İnternetten hafta çekme: TheSportsDB eventsround.php.
+   Ücretsiz "123" anahtarı sınırlı ve paylaşımlı; yoğun kullanımda ya da
+   kaynak değişirse çalışmayabilir. Başarısız olursa kullanıcı elle arayıp
+   yapıştırma kutusunu kendisi doldurmaya devam edebilir — akış bozulmaz. */
+function internettenCek(){
+  if(MISAFIR||S.cekBusy) return;
+  var el=document.getElementById("cekHafta");
+  var hafta=parseInt(el&&el.value,10);
+  if(!isFinite(hafta)||hafta<1||hafta>34){ S.cekMsg="Hafta numarası 1 ile 34 arasında olmalı."; S.cekHata=true; render(); return; }
+  S.cekHaftaNo=String(hafta); S.cekBusy=true; S.cekMsg=""; S.cekHata=false; render();
+
+  var url="https://www.thesportsdb.com/api/v1/json/123/eventsround.php?id=4339&r="+hafta+"&s=2026-2027";
+  fetch(url).then(function(r){
+    if(!r.ok) throw new Error("sunucu "+r.status+" döndü");
+    return r.json();
+  }).then(function(data){
+    S.cekBusy=false;
+    var olaylar=(data&&data.events)||[];
+    if(!olaylar.length){ S.cekMsg="Bu haftada veri bulunamadı. Hafta henüz oynanmamış ya da kaynak bu ligi desteklemiyor olabilir."; S.cekHata=true; render(); return; }
+
+    var satirlar=[], eslesmeyen=[], skorsuz=0;
+    olaylar.forEach(function(e){
+      var hg=e.intHomeScore, ag=e.intAwayScore;
+      if(hg===null||hg===undefined||ag===null||ag===undefined||hg===""||ag===""){ skorsuz++; return; }
+      var H=nearestTeam(e.strHomeTeam), A=nearestTeam(e.strAwayTeam);
+      if(!H||!A){ eslesmeyen.push((H?"":e.strHomeTeam+" ")+(A?"":e.strAwayTeam)); return; }
+      satirlar.push({home:H,away:A,hg:parseInt(hg,10)||0,ag:parseInt(ag,10)||0,ref:"",week:String(hafta)});
+    });
+
+    var kutu=document.getElementById("pasteIn");
+    if(kutu) kutu.value = satirlar.length ? JSON.stringify(satirlar,null,1) : "";
+
+    var parts=[];
+    if(satirlar.length) parts.push(satirlar.length+" maç bulundu, hakem alanlarını doldurup \"Maçları ekle\"ye basmadan önce gözden geçir");
+    if(skorsuz) parts.push(skorsuz+" maç henüz oynanmamış");
+    if(eslesmeyen.length) parts.push("tanınmayan takım: "+eslesmeyen.join(", "));
+    S.cekMsg = parts.length ? parts.join(". ")+"." : "Bu haftadan kullanılabilir maç çıkmadı.";
+    S.cekHata = !satirlar.length;
+    render();
+  }).catch(function(err){
+    S.cekBusy=false;
+    S.cekMsg="Çekilemedi ("+(err&&err.message||"ağ hatası")+"). Kaynağa bu cihazdan ulaşılamıyor olabilir; her zamanki gibi arayıp elle yapıştırabilirsin.";
+    S.cekHata=true;
+    render();
+  });
+}
+
 function nearestTeam(name){
   if(!name) return null;
   var n=norm(name); if(!n) return null;
