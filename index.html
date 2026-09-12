@@ -489,7 +489,7 @@ details .note{margin-top:10px;}
   .tab{font-size:12.5px;padding:11px 9px;gap:5px;}
   .tab svg{width:13px;height:13px;}
   .card{padding:16px;}
-  .thead,.trow{grid-template-columns:22px minmax(0,1fr) 38px 44px 48px;gap:5px;}
+  .thead,.trow{grid-template-columns:22px minmax(0,1fr) 30px 34px 40px 38px;gap:4px;}
   .mscore{font-size:20px;}
 }
 @media (prefers-reduced-motion:reduce){
@@ -578,7 +578,7 @@ sm(401,4,"Başakşehir",2,3,"Galatasaray","Kadir Sağlam"),sm(402,4,"Fenerbahçe
 function seedKopya(){
   var a=SEED_MATCHES.map(function(m){return {id:m.id,week:m.week,home:m.home,away:m.away,hg:m.hg,ag:m.ag,ref:m.ref,by:m.by,skorOnay:true,decisions:[],upd:0};});
   function karar(id,type,harmed,minute,certainty){
-    var m=a.filter(function(x){return x.id===id;})[0]; if(!m) return;
+    var m=a.filter(function(x){return String(x.id)===String(id);})[0]; if(!m) return;
     m.decisions.push({kid:"seed-"+id+"-"+m.decisions.length,type:type,harmed:harmed,minute:minute,certainty:certainty,note:"örnek kayıt",by:"örnek"});
   }
   karar(201,"pen_not","away",88,90);           /* Alanya 1-0 BJK — verilmeyen geç penaltı */
@@ -637,7 +637,8 @@ function normPts(eh,ea){
 /* Tam maç gol beklentisi (Süper Lig ev / deplasman). Kalan süre kesriyle çarpılır. */
 var TABAN_EV=1.45, TABAN_DEP=1.20;
 /* 90 + altı dakika uzatma. 90′ sonrası kırmızı sıfırlanmasın. */
-var MAC_DK=120;
+var MAC_DK=90;
+var UZATMA_TABAN=6;
 function kalanPuan(gh,ga,dh,da,f){
   f=Math.max(0,Math.min(1,f==null?1:+f));
   if(Math.abs(dh)<0.001 && Math.abs(da)<0.001) return {home:0,away:0};
@@ -657,7 +658,11 @@ function matchImpact(m){
   return out;
 }
 function tohumluZar(m, mode){
-  var str=String(m.id)+'|'+m.hg+'|'+m.ag+'|'+(mode||'')+'|'+JSON.stringify(m.decisions||[]);
+  var parca=[m.hg,m.ag,mode||''];
+  (m.decisions||[]).forEach(function(d){
+    parca.push(d.type||'', d.harmed||'', +d.minute||0, +d.certainty||0);
+  });
+  var str=parca.join('|');
   var h=2166136261;
   for(var i=0;i<str.length;i++) h=Math.imul(h^str.charCodeAt(i),16777619);
   var s=h>>>0;
@@ -681,7 +686,11 @@ function matchImpactHesap(m){
   }
   /* Geç olay (90′) skor düzeltilir; erken olay kalan süre Poisson'a gider.
      Ağırlık olayın KENDİ dakikasına bağlı — maçtaki en geç olaya değil. */
-  function lateOf(d){ return Math.max(0,Math.min(1,(+d.minute||45)/MAC_DK)); }
+  function lateOf(d){
+      var dk=+d.minute||45;
+      if(dk<=90) return Math.max(0,Math.min(1,dk/90));
+      return 1;
+    }
 
   function calc(mode){
     function wOf(d){
@@ -690,7 +699,12 @@ function matchImpactHesap(m){
       if(mode==="high") return Math.min(1,p+0.20);
       return p;
     }
-    function remFrac(d){ return Math.max(0,Math.min(1,(MAC_DK-(+d.minute||45))/MAC_DK)); }
+    function remFrac(d){
+      var dk=+d.minute||45;
+      if(dk<90) return (90-dk)/90;
+      var kalan=Math.max(1, UZATMA_TABAN-Math.max(0,dk-90));
+      return kalan/90;
+    }
     var rh=0, ra=0, remF=0;
     redDecs.forEach(function(d){
       var w=wOf(d); if(w<=0) return;
@@ -768,18 +782,13 @@ function matchImpactHesap(m){
   }
   function kirp(im){
     var r=realPts(m.hg,m.ag);
-    function tek(ham, gercek, extraGol){
+    function tek(ham, gercek){
       var duz=gercek+ham;
       var kirpik=Math.max(0,Math.min(3,duz));
       var tasan=duz-kirpik;
-      /* Beklenen puan 0–3 içinde kaldığında da: zaten 3 puanlık maçta
-         ek mağduriyet / zaten 0'da ek haksız kazanç sonuca yansımaz.
-         Kayan nokta yüzünden tasan tam 0 olmayabilir; eşik kullanılır. */
-      if(Math.abs(tasan)<1e-3 && gercek>=3 && extraGol>0.05) tasan=extraGol;
-      if(Math.abs(tasan)<1e-3 && gercek<=0 && extraGol<-0.05) tasan=extraGol;
       return {etki:kirpik-gercek, bosa:Math.max(0,tasan), fazla:Math.max(0,-tasan)};
     }
-    var h=tek(im.home,r[0],im.gh), a=tek(im.away,r[1],im.ga);
+    var h=tek(im.home,r[0]), a=tek(im.away,r[1]);
     return {home:h.etki, away:a.etki,
             bosaHome:h.bosa, bosaAway:a.bosa,
             fazlaHome:h.fazla, fazlaAway:a.fazla};
@@ -876,7 +885,7 @@ function buildTable(){
 /* ---------------- Durum ---------------- */
 var S={tema:"acik", me:null, teams:DEFAULT_TEAMS.slice(), matches:[], tab:"table", draft:null, editId:null, acikTakim:null,
        msg:"", binId:"", sync:"yerel", quick:null,
-       cekHaftaNo:"", cekBusy:false, cekMsg:"", cekHata:false, hakemSira:"hata",
+       cekHaftaNo:"", cekBusy:false, cekMsg:"", cekHata:false, pasteMetin:"", hakemSira:"hata",
        silinen:{}, acikHafta:null, acikHakem:null, ornek:false, yerineYaz:false, acikEtkili:false,
        tabloGor:"adj"};
 /* Misafir kipi: adres ?misafir ile bitiyorsa uygulama salt okunur açılır.
@@ -1469,8 +1478,8 @@ function takimDetay(ad){
      +'<span class="dwho">'+(x.evde?'':'<span class="vs">@</span>')+tdot(x.rakip)+esc(x.rakip)+' <b class="dskor">'+x.skor+'</b></span>'
      +'<span class="'+(x.etki>=0?'dup':'ddown')+'">'+(etkili?(x.etki>=0?'+':'')+x.etki.toFixed(2):'—')+'</span></div>'
      +'<div class="dmeta">'+(x.hafta?esc(x.hafta)+'. hafta · ':'')+esc(x.hakem||'hakem girilmedi')
-     +(x.bosa>0.05?' · <span style="color:var(--amber)" title="Kazanırken uğradığı, tabloya yansımayan hata">sonuca yansımadı (~'+x.bosa.toFixed(2)+')</span>':'')
-     +(x.fazla>0.05?' · <span style="color:var(--red)" title="Kaybederken yararlandığı, tabloya yansımayan hata">sonuca yansımadı (−'+x.fazla.toFixed(2)+')</span>':'')
+     +(x.bosa>0.05?' · <span style="color:var(--amber)" title="Beklenen puan 3'ü aştığı için tabloya yazılamayan puan">kırpılan puan (~'+x.bosa.toFixed(2)+')</span>':'')
+     +(x.fazla>0.05?' · <span style="color:var(--red)" title="Beklenen puan 0'ın altına indiği için tabloya yazılamayan puan">kırpılan puan (−'+x.fazla.toFixed(2)+')</span>':'')
      +'</div>';
     x.kararlar.forEach(function(k){
       h+='<div class="dkarar"><span class="dnokta" style="background:'+(k.lehte?'var(--greenFill)':'var(--redFill)')+'"></span>'+esc(k.metin)+'</div>';
@@ -1620,7 +1629,7 @@ function vAdd(){
 
     h+='<div class="card"><span class="lbl">Haftayı toplu ekle</span>'
      +'<p class="note" style="margin:0 0 10px">Hafta verisini yapıştır — üstüne yazmaz, ekler.</p>'
-     +'<textarea id="pasteIn" placeholder=\'[{"home":"Beşiktaş","away":"Eyüpspor","hg":1,"ag":0,"ref":"Hakem adı","week":"1"}]\' style="width:100%;min-height:96px;background:var(--panel2);border:1.5px solid var(--edge);color:var(--ink);border-radius:10px;padding:12px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;line-height:1.5"></textarea>'
+     +'<textarea id="pasteIn" placeholder=\'[{"home":"Beşiktaş","away":"Eyüpspor","hg":1,"ag":0,"ref":"Hakem adı","week":"1"}]\' style="width:100%;min-height:96px;background:var(--panel2);border:1.5px solid var(--edge);color:var(--ink);border-radius:10px;padding:12px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;line-height:1.5" oninput="S.pasteMetin=this.value">'+esc(S.pasteMetin||"")+'</textarea>'
      +'<div class="btnrow" style="margin-top:10px"><button class="btn" onclick="pasteWeek()">Maçları ekle</button></div>'
      +'<details><summary>Biçim açıklaması</summary><p class="note">Köşeli parantez içinde, her maç bir nesne. '
      +'<b>hg</b> ev sahibi golü, <b>ag</b> deplasman golü, <b>ref</b> hakem, <b>week</b> hafta. '
@@ -1778,7 +1787,7 @@ function etkiDokumu(){
     if(!(m.incelendi || (m.decisions||[]).length)) return;
     var hk=(m.ref||"").trim()||"(hakem girilmedi)";
     var H=hEnt(hk); H.mac++;
-    /* Kırpma yüzünden tabloya yazılamayan etki de hakemin siciline işler */
+    /* Yalnız 0–3 dışına taşan PUAN. Gol beklentisi buraya yazılmaz. */
     var im0=matchImpact(m);
     H.yansimayan += (im0.mid.bosaHome||0)+(im0.mid.bosaAway||0)+(im0.mid.fazlaHome||0)+(im0.mid.fazlaAway||0);
     var etkiler=kararEtkileri(m);
@@ -1848,7 +1857,7 @@ function vEtkiOzet(){
        +'<span class="ozet-ad">'+esc(r.ad)
        +'<span class="ozet-alt">'+r.mac+' maç · '+r.karar+' karar'
        +(r.etkili?' ('+r.etkili+"'i skoru değiştirdi)":' (hiçbiri skoru değiştirmedi)')
-       +(r.yansimayan>0.05?' · <span style="color:var(--amber)">'+r.yansimayan.toFixed(1)+' sonuca yansımadı</span>':'')
+       +(r.yansimayan>0.05?' · <span style="color:var(--amber)">'+r.yansimayan.toFixed(1)+' puan tabloya sığmadı</span>':'')
        +(enCok&&pay>0.7&&r.karar>=3?'<br><span style="color:var(--red)">kararlarının %'+Math.round(pay*100)+"'i tek takım lehine: "+esc(enCok)+'</span>'
          :(enCok?' · en çok <b>'+esc(enCok)+'</b> lehine':''))
        +'</span></span>'
@@ -1920,7 +1929,7 @@ function vRefs(){
   var h=vEtkiOzet()+vEtkili();
   if(!refs.length) return h+emptyPitch('Hakem adı girilmiş maç yok.<br>Maç eklerken hakem alanını doldurursan burada döküm çıkar.');
   h+='<div class="card"><span class="lbl">Hakem — takım takım</span>'
-   +'<p class="note" style="margin-top:0">Sayı, o hakemin maçlarındaki düzeltilmiş puan etkisidir (tablodaki fark ile aynı birim). Dokununca takım takım leh/aleyh açılır.</p>';
+   +'<p class="note" style="margin-top:0">Net puan: tablodaki farkın bu hakemdeki payı. Leh/aleyh: karar sayısı. İkisi toplanmaz.</p>';
   refs.forEach(function(r){
     var acik=S.acikHakem===r.name;
     h+='<div class="hafta" style="box-shadow:none;margin:0 0 8px">'
@@ -1965,12 +1974,12 @@ function vKurallar(){
 
   h+='<div class="card"><span class="lbl">Hesap nasıl işliyor</span>'
    +'<p class="note" style="margin-top:0"><b>Her karar kendi dakikasıyla bölünür.</b> '
-   +'Karar için <b>geçlik = dakika / 120</b> (90 + uzatma payı). Kesinliği p ise: skorun ±1 değişme ihtimali <b>p × geçlik</b>, kalan <b>p × (1 − geçlik)</b> kalan süreye gol beklentisi olarak eklenir. '
+   +'Karar için <b>geçlik = dakika / 90</b>. 90′ sonrası olay skor düzeltmesidir; uzatmada kalan süre dakikadan dakikaya küçülür. Kesinliği p ise: skorun ±1 değişme ihtimali <b>p × geçlik</b>, kalan <b>p × (1 − geçlik)</b> kalan süreye gol beklentisi olarak eklenir. '
    +'20′ ve 89′ aynı maçtaysa 20′ neredeyse tamamen olasılık, 89′ neredeyse tamamen skor düzeltmesi olur; biri diğerini “geç” yapmaz. 90′ sonrası kırmızı da kalan uzatmayla ölçülür.</p>'
    +'<p class="note"><b>Erken hata maçı silmez.</b> Oynanmış skor yerinde durur; yalnızca kalan süreye ek gol beklentisi biner. Maç 90 dakika baştan kurulmaz.</p>'
    +'<p class="note"><b>Sonucu bilinen olaylar tam gol sayılır.</b> Golle biten yanlış penaltı ya da sayılan ofsaytlı gol geri alınırken 1 tam gol düşülür.</p>'
    +'<p class="note"><b>Kaçan yanlış penaltı kayda geçmez.</b> “Rakibe yanlış verilen penaltı (gol oldu)” yalnız top filelere gittiyse seçilir. Kurtarıldıysa ya da dışarı gittiyse skor zaten değişmemiştir; bu türe yazılmaz.</p>'
-   +'<p class="note"><b>Sonucu bilinmeyen olaylar olasılıkla sayılır.</b> Verilmeyen penaltı 0,76 gol değerindedir. Kırmızı kartın etkisi kalan süreye yayılır: mağdur takımın gol beklentisi artar, on kişi kalan rakibin gol beklentisi düşer. İki yön ayrı katsayılarla işlenir (0,65 ve 0,35). Uzatma 120′ye kadar sayılır; 97′ kırmızı da kalan süreyle ölçülür.</p>'
+   +'<p class="note"><b>Sonucu bilinmeyen olaylar olasılıkla sayılır.</b> Verilmeyen penaltı 0,76 gol değerindedir. Kırmızı kartın etkisi kalan süreye yayılır: mağdur takımın gol beklentisi artar, on kişi kalan rakibin gol beklentisi düşer. İki yön ayrı katsayılarla işlenir (0,65 ve 0,35). 90′ öncesi kalan süre 90′ye göre ölçülür. 90′ sonrası için varsayılan 6 dk uzatma vardır; 97′ kırmızıya 23 dk uydurulmaz.</p>'
    +'<p class="note"><b>Kesinlik yüzdesi ağırlık verir.</b> Aynı sayı hem “bu bir hataydı” inancını hem “düzeltme gerçekleşirdi” ihtimalini taşır. Bantın dar ucu kesinlik−20, geniş ucu kesinlik+20 (0–100). Bu üç senaryonun min/max’ıdır; istatistiksel güven aralığı değildir. Hızlı giriş: %95 / %80 / %60.</p>'
    +'<p class="note"><b>Aynı karar iki kez yazılmaz.</b> Geç pay skor düzeltmesi olduysa o dünyada erken xG eklenmez. Taban gol beklentisi ev 1,45 / deplasman 1,20, kalan süre kesriyle çarpılır.</p></div>';
 
@@ -1978,7 +1987,7 @@ function vKurallar(){
    +'<p class="note" style="margin-top:0">Futbolda bir maçtan en fazla 3, en az 0 puan alınır ve düzeltme bu sınırı aşamaz. '
    +'Zaten kazanmış bir takımın lehine ekleyecek, zaten kaybetmiş bir takımın aleyhine düşecek puan yoktur.</p>'
    +'<p class="note">Böyle bir hata tabloyu değiştirmez ama kayboldu sayılmaz: takıma dokununca açılan dökümde ve '
-   +'hakemin karnesinde <b style="color:var(--amber)">sonuca yansımadı</b> notuyla görünür. '
+   +'hakemin karnesinde <b style="color:var(--amber)">kırpılan puan</b> notuyla görünür (yalnız puan, gol beklentisi değil). '
    +'Hakemin siciline işler, sıralamaya karışmaz.</p></div>';
 
   h+='<div class="card"><span class="lbl">Tabloları okuma</span>'
@@ -2085,7 +2094,7 @@ function quickSet(k,v){
 }
 function quickCommit(){
   var q=S.quick;
-  var m=S.matches.filter(function(x){return x.id===q.id;})[0];
+  var m=macById(q.id);
   if(!m){ S.quick=null; render(); return; }
   if(!m.decisions) m.decisions=[];
   var nt=document.getElementById("qnot");
@@ -2117,7 +2126,7 @@ function delDec(i){
 function findDupes(home,away,week,skipId){
   var w=String(week||"").trim();
   return S.matches.filter(function(m){
-    return m.id!==skipId && m.home===home && m.away===away && String(m.week||"").trim()===w;
+    return !ayniMac(m.id,skipId) && m.home===home && m.away===away && String(m.week||"").trim()===w;
   });
 }
 function saveMatch(){
@@ -2143,9 +2152,9 @@ function saveMatch(){
     incelendi: !!(d.incelendi || (d.decs||[]).length),
     silinenKarar:Object.assign({}, d.silinenKarar||{})};
   if(S.editId){
-    var eski=S.matches.filter(function(x){return x.id===S.editId;})[0];
+    var eski=macById(S.editId);
     if(eski){
-      rec.skorOnay = !!(d.skorOnay || eski.skorOnay);
+      rec.skorOnay = (+eski.hg===+rec.hg && +eski.ag===+rec.ag) ? !!(d.skorOnay || eski.skorOnay) : false;
       rec.silinenKarar=Object.assign({}, eski.silinenKarar||{});
       var yeniKids={};
       rec.decisions.forEach(function(x){ if(x.kid) yeniKids[x.kid]=1; });
@@ -2153,7 +2162,7 @@ function saveMatch(){
         if(x.kid && !yeniKids[x.kid]) rec.silinenKarar[x.kid]=Date.now();
       });
     }
-    S.matches=S.matches.map(function(m){return m.id===S.editId?rec:m;});
+    S.matches=S.matches.map(function(m){return ayniMac(m.id,S.editId)?rec:m;});
   }
   else{ S.matches.push(rec); }
   S.draft=null; S.editId=null; S.tab="matches"; save(); render();
@@ -2166,6 +2175,7 @@ function editMatch(id){
 }
 function cancelEdit(){ S.draft=null; S.editId=null; S.tab="matches"; render(); }
 function hakemSirala(n){ S.hakemSira = (n==="etki"?"etki":"hata"); render(); }
+function ayniMac(a,b){ return String(a)===String(b); }
 function macById(id){
   var s=String(id);
   return S.matches.filter(function(x){return String(x.id)===s;})[0];
@@ -2261,8 +2271,7 @@ function internettenCek(){
         if(!H||!A){ eslesmeyen.push((H?"":e.strHomeTeam+" ")+(A?"":e.strAwayTeam)); return; }
         satirlar.push({home:H,away:A,hg:parseInt(hg,10)||0,ag:parseInt(ag,10)||0,ref:"",week:String(hafta)});
       });
-      var kutu=document.getElementById("pasteIn");
-      if(kutu) kutu.value = satirlar.length ? JSON.stringify(satirlar,null,1) : "";
+      S.pasteMetin = satirlar.length ? JSON.stringify(satirlar,null,1) : "";
       var yanlisSezon=(denemeler[i].s!==HEDEF);
       var parts=[];
       if(yanlisSezon) parts.push("DİKKAT: "+HEDEF+" sezonu boş döndü, bu veri "+denemeler[i].s+" kaynağından geliyor — kaydetmeden önce her satırı doğrula");
