@@ -172,8 +172,8 @@ h1 span{color:var(--amber);font-style:italic;font-weight:500;letter-spacing:-.02
   box-shadow:0 0 0 1px color-mix(in oklab, var(--ink) 16%, transparent);
 }
 .tdot i{display:block;}
-.team{display:flex;align-items:center;gap:9px;min-width:0;font-size:15px;font-weight:550;color:var(--ink);}
-.tname{min-width:0;overflow:visible;white-space:normal;line-height:1.2;hyphens:manual;}
+.team{display:flex;align-items:center;gap:8px;min-width:0;font-size:15px;font-weight:550;color:var(--ink);justify-content:flex-start;}
+.tname{flex:0 1 auto;min-width:0;overflow:visible;white-space:nowrap;line-height:1.2;}
 .liga{justify-self:start;min-width:0;}
 .rank{
   width:24px;height:24px;border-radius:50%;
@@ -362,7 +362,7 @@ button.danger{background:none;color:var(--red);box-shadow:0 0 0 1.5px color-mix(
 button.btn:focus-visible{outline:2px solid var(--amber);outline-offset:2px;}
 .btnrow{display:flex;gap:10px;flex-wrap:wrap;}
 
-.thead,.trow{display:grid;grid-template-columns:24px minmax(8.2rem,1fr) 36px 34px 58px 46px;gap:6px;align-items:center;}
+.thead,.trow{display:grid;grid-template-columns:24px minmax(9rem,1fr) 36px 58px 48px;gap:8px;align-items:center;}
 .thead{padding-bottom:10px;border-bottom:1px solid var(--edge);
   font-size:11px;font-weight:650;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);}
 .thead .pts{
@@ -472,7 +472,7 @@ details .note{margin-top:10px;}
   display:inline-flex;align-items:center;gap:6px;white-space:nowrap;
 }
 .temabtn:hover{color:var(--ink);box-shadow:0 0 0 1px var(--ink);}
-.rozet{display:inline-block;padding:3px 6px;border-radius:5px;font-size:9.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap;line-height:1.2;}
+.rozet{flex:0 0 auto;display:inline-block;padding:3px 6px;border-radius:5px;font-size:9.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap;line-height:1.2;}
 .r-sl{background:var(--amberFill);color:#1a1400;}
 .r-slon{background:transparent;color:var(--amber);box-shadow:inset 0 0 0 1.5px var(--amberFill);}
 .r-al{background:#2F4FBF;color:#F3F6FF;}
@@ -493,7 +493,7 @@ details .note{margin-top:10px;}
   .tab{font-size:12.5px;padding:11px 9px;gap:5px;}
   .tab svg{width:13px;height:13px;}
   .card{padding:16px;}
-  .thead,.trow{grid-template-columns:20px minmax(7.2rem,1fr) 34px 32px 52px 42px;gap:5px;}
+  .thead,.trow{grid-template-columns:20px minmax(7.5rem,1fr) 32px 52px 42px;gap:5px;}
   .thead .pts{font-size:9.5px;}
   .tname{font-size:13.5px;}
   .mscore{font-size:20px;}
@@ -573,7 +573,7 @@ function typeOf(id){for(var i=0;i<TYPES.length;i++){if(TYPES[i].id===id)return T
 var DEFAULT_TEAMS=["Alanyaspor","Amedspor","Başakşehir","Beşiktaş","Çorum FK","Erzurumspor FK","Eyüpspor","Fenerbahçe","Galatasaray","Gaziantep FK","Gençlerbirliği","Göztepe","Kasımpaşa","Kocaelispor","Konyaspor","Rizespor","Samsunspor","Trabzonspor"];
 var TEAM_COLORS={"Alanyaspor":["#F47920","#1D4F8C"],"Amedspor":["#C8102E","#1B7A3D"],"Başakşehir":["#F47B20","#1A1A1A"],"Beşiktaş":["#111813","#E8ECE6"],"Çorum FK":["#C8102E","#111813"],"Erzurumspor FK":["#0033A0","#E8ECE6"],"Eyüpspor":["#5B1A4A","#C9A227"],"Fenerbahçe":["#002F6C","#E8B62C"],"Galatasaray":["#A90432","#E8B62C"],"Gaziantep FK":["#C8102E","#111813"],"Gençlerbirliği":["#C8102E","#111813"],"Göztepe":["#C8102E","#E8B62C"],"Kasımpaşa":["#003DA5","#E8ECE6"],"Kocaelispor":["#126B45","#111813"],"Konyaspor":["#126B45","#E8ECE6"],"Rizespor":["#003DA5","#C8102E"],"Samsunspor":["#C8102E","#E8ECE6"],"Trabzonspor":["#7B1113","#3B5998"]};
 function tdot(name){var c=TEAM_COLORS[name]||["#7c8a7f","#5e6d61"];return '<span class="tdot" aria-hidden="true"><i style="background:'+c[0]+'"></i><i style="background:'+c[1]+'"></i></span>';}
-function teamCell(name){return '<div class="team">'+tdot(name)+'<span class="tname">'+esc(name)+'</span></div>';}
+function teamCell(name, rozet){return '<div class="team">'+tdot(name)+'<span class="tname">'+esc(name)+'</span>'+(rozet||'')+'</div>';}
 function sm(id,week,home,hg,ag,away,ref){return {id:id,week:String(week),home:home,away:away,hg:hg,ag:ag,ref:ref,by:"örnek",skorOnay:true,decisions:[]};}
 var SEED_MATCHES=[
 sm(101,1,"Galatasaray",2,2,"Çorum FK","Batuhan Kolak"),sm(102,1,"Gençlerbirliği",2,1,"Fenerbahçe","Oğuzhan Aksu"),sm(103,1,"Kasımpaşa",1,1,"Trabzonspor","Gürcan Hasova"),sm(104,1,"Gaziantep FK",1,1,"Alanyaspor","Yasin Kol"),sm(105,1,"Başakşehir",2,0,"Kocaelispor","Mehmet Türkmen"),sm(106,1,"Beşiktaş",1,0,"Eyüpspor","Oğuzhan Çakır"),sm(107,1,"Amedspor",3,0,"Erzurumspor FK","Halil Umut Meler"),sm(108,1,"Samsunspor",3,3,"Göztepe","Kadir Sağlam"),sm(109,1,"Konyaspor",0,1,"Rizespor","Cihan Aydın"),
@@ -1552,14 +1552,13 @@ function vTable(){
   h+='</div>';
 
   if(gor==='adj'){
-    h+='<div class="thead"><div class="pos">#</div><div>Takım</div><div></div><div class="pts">Anlık</div><div class="pts">Olması gereken</div><div class="pts">Fark</div></div><div class="tstack">';
+    h+='<div class="thead"><div class="pos">#</div><div>Takım</div><div class="pts">Anlık</div><div class="pts">Olması gereken</div><div class="pts">Fark</div></div><div class="tstack">';
     T.adj.forEach(function(r){
       var move=r.realPos-r.adjPos;
       var lo=Math.min(r.low,r.high), hi=Math.max(r.low,r.high);
       var acik = S.acikTakim===r.name;
       h+='<div class="trow trow-t'+(acik?' acik':'')+'" data-takim="'+esc(r.name)+'" onclick="takimAc(this.getAttribute(\'data-takim\'))" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();takimAc(this.getAttribute(\'data-takim\'));}" role="button" tabindex="0">'
-       +'<div class="pos rank'+(r.adjPos<=3?(' r'+r.adjPos):'')+'">'+r.adjPos+'</div>'+teamCell(r.name)
-       +'<div class="liga">'+ligRozet(r.adjPos)+'</div>'
+       +'<div class="pos rank'+(r.adjPos<=3?(' r'+r.adjPos):'')+'">'+r.adjPos+'</div>'+teamCell(r.name, ligRozet(r.adjPos))
        +'<div class="pts">'+r.pts+'</div>'
        +'<div class="pts">'+(r.pts+r.mid).toFixed(1)+'</div>'
        +'<div class="delta '+(r.mid>=0?'up':'down')+'" title="üç senaryo '+lo.toFixed(1)+' … '+hi.toFixed(1)+'">'+(r.mid>=0?'+':'')+r.mid.toFixed(1)
@@ -1568,11 +1567,11 @@ function vTable(){
     });
     h+='</div></div>';
   } else if(gor==='tff'){
-    var gcols='24px minmax(0,1fr) 42px 30px 44px 40px 40px';
-    h+='<div class="thead" style="grid-template-columns:'+gcols+'"><div class="pos">#</div><div>Takım</div><div></div><div class="pts">O</div><div class="pts">A:Y</div><div class="pts">Av</div><div class="pts">P</div></div>';
+    var gcols='24px minmax(9rem,1fr) 30px 44px 40px 40px';
+    h+='<div class="thead" style="grid-template-columns:'+gcols+'"><div class="pos">#</div><div>Takım</div><div class="pts">O</div><div class="pts">A:Y</div><div class="pts">Av</div><div class="pts">P</div></div>';
     T.real.forEach(function(r){
       h+='<div class="trow" style="grid-template-columns:'+gcols+'"><div class="pos">'+r.realPos+'</div>'
-       +teamCell(r.name)+'<div class="liga">'+ligRozet(r.realPos)+'</div>'+'<div class="pts">'+r.p+'</div>'
+       +teamCell(r.name, ligRozet(r.realPos))+'<div class="pts">'+r.p+'</div>'
        +'<div class="pts" style="color:var(--muted)">'+r.gf+':'+r.ga+'</div>'
        +'<div class="pts">'+((r.gf-r.ga)>0?'+':'')+(r.gf-r.ga)+'</div>'
        +'<div class="pts" style="color:var(--amber)">'+r.pts+'</div></div>';
