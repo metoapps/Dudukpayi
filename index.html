@@ -701,9 +701,7 @@ function matchImpactHesap(m){
     }
     function remFrac(d){
       var dk=+d.minute||45;
-      if(dk<90) return (90-dk)/90;
-      var kalan=Math.max(1, UZATMA_TABAN-Math.max(0,dk-90));
-      return kalan/90;
+      return Math.max(0, (90+UZATMA_TABAN-dk)/90);
     }
     var rh=0, ra=0, remF=0;
     redDecs.forEach(function(d){
@@ -1069,7 +1067,7 @@ function macBirlestir(a,b){
     id:yeni.id, home:yeni.home, away:yeni.away,
     hg:yeni.hg, ag:yeni.ag, week:yeni.week,
     ref:(yeni.ref&&String(yeni.ref).trim())?yeni.ref:eski.ref,
-    by:yeni.by||eski.by, skorOnay:!!(yeni.skorOnay||eski.skorOnay),
+    by:yeni.by||eski.by, skorOnay:!!yeni.skorOnay,
     incelendi: !!(yeni.incelendi || (yeni.decisions||[]).length),
     upd:Math.max(a.upd||0,b.upd||0),
     silinenKarar:silinenKarar,
@@ -1478,8 +1476,8 @@ function takimDetay(ad){
      +'<span class="dwho">'+(x.evde?'':'<span class="vs">@</span>')+tdot(x.rakip)+esc(x.rakip)+' <b class="dskor">'+x.skor+'</b></span>'
      +'<span class="'+(x.etki>=0?'dup':'ddown')+'">'+(etkili?(x.etki>=0?'+':'')+x.etki.toFixed(2):'—')+'</span></div>'
      +'<div class="dmeta">'+(x.hafta?esc(x.hafta)+'. hafta · ':'')+esc(x.hakem||'hakem girilmedi')
-     +(x.bosa>0.05?' · <span style="color:var(--amber)" title="Beklenen puan 3'ü aştığı için tabloya yazılamayan puan">kırpılan puan (~'+x.bosa.toFixed(2)+')</span>':'')
-     +(x.fazla>0.05?' · <span style="color:var(--red)" title="Beklenen puan 0'ın altına indiği için tabloya yazılamayan puan">kırpılan puan (−'+x.fazla.toFixed(2)+')</span>':'')
+     +(x.bosa>0.05?' · <span style="color:var(--amber)" title="Yazilamayan puan">kirpilan (~'+x.bosa.toFixed(2)+')</span>':'')
+     +(x.fazla>0.05?' · <span style="color:var(--red)" title="Alt sinir asildigi icin yazilamayan puan">kirpilan (-'+x.fazla.toFixed(2)+')</span>':'')
      +'</div>';
     x.kararlar.forEach(function(k){
       h+='<div class="dkarar"><span class="dnokta" style="background:'+(k.lehte?'var(--greenFill)':'var(--redFill)')+'"></span>'+esc(k.metin)+'</div>';
@@ -1857,7 +1855,7 @@ function vEtkiOzet(){
        +'<span class="ozet-ad">'+esc(r.ad)
        +'<span class="ozet-alt">'+r.mac+' maç · '+r.karar+' karar'
        +(r.etkili?' ('+r.etkili+"'i skoru değiştirdi)":' (hiçbiri skoru değiştirmedi)')
-       +(r.yansimayan>0.05?' · <span style="color:var(--amber)">'+r.yansimayan.toFixed(1)+' puan tabloya sığmadı</span>':'')
+       +(r.yansimayan>0.05?' · <span style="color:var(--amber)">'+r.yansimayan.toFixed(1)+' puan kirpildi</span>':'')
        +(enCok&&pay>0.7&&r.karar>=3?'<br><span style="color:var(--red)">kararlarının %'+Math.round(pay*100)+"'i tek takım lehine: "+esc(enCok)+'</span>'
          :(enCok?' · en çok <b>'+esc(enCok)+'</b> lehine':''))
        +'</span></span>'
@@ -1979,16 +1977,15 @@ function vKurallar(){
    +'<p class="note"><b>Erken hata maçı silmez.</b> Oynanmış skor yerinde durur; yalnızca kalan süreye ek gol beklentisi biner. Maç 90 dakika baştan kurulmaz.</p>'
    +'<p class="note"><b>Sonucu bilinen olaylar tam gol sayılır.</b> Golle biten yanlış penaltı ya da sayılan ofsaytlı gol geri alınırken 1 tam gol düşülür.</p>'
    +'<p class="note"><b>Kaçan yanlış penaltı kayda geçmez.</b> “Rakibe yanlış verilen penaltı (gol oldu)” yalnız top filelere gittiyse seçilir. Kurtarıldıysa ya da dışarı gittiyse skor zaten değişmemiştir; bu türe yazılmaz.</p>'
-   +'<p class="note"><b>Sonucu bilinmeyen olaylar olasılıkla sayılır.</b> Verilmeyen penaltı 0,76 gol değerindedir. Kırmızı kartın etkisi kalan süreye yayılır: mağdur takımın gol beklentisi artar, on kişi kalan rakibin gol beklentisi düşer. İki yön ayrı katsayılarla işlenir (0,65 ve 0,35). 90′ öncesi kalan süre 90′ye göre ölçülür. 90′ sonrası için varsayılan 6 dk uzatma vardır; 97′ kırmızıya 23 dk uydurulmaz.</p>'
+   +'<p class="note"><b>Sonucu bilinmeyen olaylar olasılıkla sayılır.</b> Verilmeyen penaltı 0,76 gol değerindedir. Kırmızı kartın etkisi kalan süreye yayılır: mağdur takımın gol beklentisi artar, on kişi kalan rakibin gol beklentisi düşer. İki yön ayrı katsayılarla işlenir (0,65 ve 0,35). Kırmızıda kalan süre (96 − dakika) / 90. 89′ → 7/90, 90′ → 6/90, 96′ ve sonrası → 0. Artan sıçrama yok.</p>'
    +'<p class="note"><b>Kesinlik yüzdesi ağırlık verir.</b> Aynı sayı hem “bu bir hataydı” inancını hem “düzeltme gerçekleşirdi” ihtimalini taşır. Bantın dar ucu kesinlik−20, geniş ucu kesinlik+20 (0–100). Bu üç senaryonun min/max’ıdır; istatistiksel güven aralığı değildir. Hızlı giriş: %95 / %80 / %60.</p>'
    +'<p class="note"><b>Aynı karar iki kez yazılmaz.</b> Geç pay skor düzeltmesi olduysa o dünyada erken xG eklenmez. Taban gol beklentisi ev 1,45 / deplasman 1,20, kalan süre kesriyle çarpılır.</p></div>';
 
   h+='<div class="card"><span class="lbl">Puan sınırı</span>'
    +'<p class="note" style="margin-top:0">Futbolda bir maçtan en fazla 3, en az 0 puan alınır ve düzeltme bu sınırı aşamaz. '
    +'Zaten kazanmış bir takımın lehine ekleyecek, zaten kaybetmiş bir takımın aleyhine düşecek puan yoktur.</p>'
-   +'<p class="note">Böyle bir hata tabloyu değiştirmez ama kayboldu sayılmaz: takıma dokununca açılan dökümde ve '
-   +'hakemin karnesinde <b style="color:var(--amber)">kırpılan puan</b> notuyla görünür (yalnız puan, gol beklentisi değil). '
-   +'Hakemin siciline işler, sıralamaya karışmaz.</p></div>';
+   +'<p class="note">Tabloya yansımayan kararlar dökümde karar sayısı olarak durur. '
+   +'Kırpılan puan alanı yalnız beklenen puan 0-3 dışına taşarsa dolar; geçerli hesapta genelde boştur.</p></div>';
 
   h+='<div class="card"><span class="lbl">Tabloları okuma</span>'
    +'<p class="note" style="margin-top:0"><b>Tablo.</b> <span style="color:var(--green)">Yeşil</span> kararlar yüzünden puan kaybetmiş, düzeltilince kazanıyor. <span style="color:var(--red)">Kırmızı</span> kararlardan puan kazanmış. ▲▼ gerçek sıralamaya göre yer değişimi. Bir takıma dokununca sayısının hangi maçlardan geldiği açılır.</p>'
