@@ -673,7 +673,7 @@ function buildTable(){
   var arr=Object.keys(t).map(function(k){return t[k];});
   var real=arr.slice().sort(function(a,b){return b.pts-a.pts||(b.gf-b.ga)-(a.gf-a.ga)||b.gf-a.gf;});
   real.forEach(function(x,i){x.realPos=i+1;});
-  var adj=arr.slice().sort(function(a,b){return (b.pts+b.mid)-(a.pts+a.mid)||(b.mid-a.mid)||a.name.localeCompare(b.name,"tr");});
+  var adj=arr.slice().sort(function(a,b){return (b.pts+b.mid)-(a.pts+a.mid)||(b.gf-b.ga)-(a.gf-a.ga)||b.gf-a.gf;});
   adj.forEach(function(x,i){x.adjPos=i+1;});
   return {real:real,adj:adj};
 }
@@ -793,15 +793,43 @@ function localLoad(cb){
 
 /* --- Ortak depo: npoint.io --- */
 function binUrl(){ return S.binId?("https://api.npoint.io/"+S.binId):null; }
+function silinenBudan(s){
+  var kes=Date.now()-90*864e5, out={};
+  Object.keys(s||{}).forEach(function(k){ if((s[k]||0)>=kes) out[k]=s[k]; });
+  return out;
+}
+function kararAnahtar(d){ return [d.type, d.harmed, d.minute].join("|"); }
+function kararBirlestir(a,b){
+  var map={};
+  function koy(d){
+    if(!d||!d.type) return;
+    var k=kararAnahtar(d), cur=map[k];
+    if(!cur || (d.certainty||0)>(cur.certainty||0)) map[k]=d;
+  }
+  (a||[]).forEach(koy); (b||[]).forEach(koy);
+  return Object.keys(map).map(function(k){return map[k];});
+}
+function macBirlestir(a,b){
+  if(!a) return b; if(!b) return a;
+  var yeni=(a.upd||0)>=(b.upd||0)?a:b, eski=yeni===a?b:a;
+  var out={
+    id:yeni.id, home:yeni.home, away:yeni.away,
+    hg:yeni.hg, ag:yeni.ag, week:yeni.week,
+    ref:(yeni.ref&&String(yeni.ref).trim())?yeni.ref:eski.ref,
+    by:yeni.by||eski.by, skorOnay:!!(yeni.skorOnay||eski.skorOnay),
+    upd:Math.max(a.upd||0,b.upd||0),
+    decisions:kararBirlestir(a.decisions,b.decisions)
+  };
+  return out;
+}
 function birlestirDefter(yerel, uzak){
-  var silinen=Object.assign({}, (uzak&&uzak.silinen)||{}, (yerel&&yerel.silinen)||{});
+  var silinen=silinenBudan(Object.assign({}, (uzak&&uzak.silinen)||{}, (yerel&&yerel.silinen)||{}));
   var map={};
   function al(m){
     if(!m||m.id==null) return;
     var sid=String(m.id);
     if(silinen[sid] && (!m.upd || silinen[sid]>=m.upd)) return;
-    var cur=map[sid];
-    if(!cur || (m.upd||0)>=(cur.upd||0)) map[sid]=m;
+    map[sid]=map[sid]?macBirlestir(map[sid], m):m;
   }
   ((uzak&&uzak.matches)||[]).forEach(al);
   ((yerel&&yerel.matches)||[]).forEach(al);
@@ -819,7 +847,14 @@ function remotePush(cb){
 function remotePull(cb){
   if(!binUrl()){ if(cb)cb(false); return; }
   fetch(binUrl()).then(function(r){return r.ok?r.json():null;})
-  .then(function(d){ if(d){applyDoc(d); localSave();} if(cb)cb(!!d); })
+  .then(function(d){
+    if(d){
+      var m=birlestirDefter({teams:S.teams,matches:S.matches,silinen:S.silinen}, d);
+      S.teams=m.teams; S.matches=m.matches; S.silinen=m.silinen;
+      impactTemizle(); localSave();
+    }
+    if(cb)cb(!!d);
+  })
   .catch(function(){ if(cb)cb(false); });
 }
 
@@ -1631,10 +1666,14 @@ function vKurallar(){
    +'<p class="note">Şu an <b>'+S.matches.length+' maç</b>, <b>'+kararSay+' karar</b> kayıtlı.</p></div>';
 
   h+='<div class="card"><span class="lbl">Hesap nasıl işliyor</span>'
-   +'<p class="note" style="margin-top:0"><b>Olayın kendi dakikası belirleyicidir.</b> 20. dakikadaki hata kalan süreyi Poisson ile oynatır; 90+7\'deki hata skoru doğrudan düzeltir. Aynı maçta biri erken biri geçse her biri kendi dakikasıyla ağırlık alır — en geç olay diğerlerini “geç” yapmaz.</p>'
-   +'<p class="note"><b>Sonucu bilinen olaylar tam gol sayılır.</b> Golle biten yanlış penaltı ya da sayılan ofsaytlı gol geri alınırken 1 tam gol düşülür. (Kaçan yanlış penaltıyı bu türe yazma.)</p>'
+   +'<p class="note" style="margin-top:0"><b>Tek bir maç katsayısı yok — her karar kendi dakikasıyla bölünür.</b> '
+   +'Karar i için <b>geçlik = dakika / 90</b> (0…1). Kesinliği p ise: skor ±1 olma ihtimali <b>p × geçlik</b>, kalan <b>p × (1 − geçlik)</b> Poisson λ\'ya xG olarak eklenir. '
+   +'20′ ve 89′ aynı maçtaysa 20′ neredeyse tamamen Poisson, 89′ neredeyse tamamen skor düzeltmesi; biri diğerini “geç” yapmaz. '
+   +'Eski modelde wDisc = max(dakika)/90 idi ve bütün maç tek kolda harmanlanırdı — o kalktı.</p>'
+   +'<p class="note"><b>Sonucu bilinen olaylar tam gol sayılır.</b> Golle biten yanlış penaltı ya da sayılan ofsaytlı gol geri alınırken 1 tam gol düşülür.</p>'
+   +'<p class="note"><b>Kaçan yanlış penaltı etkisi sıfırdır.</b> “Rakibe yanlış verilen penaltı (gol oldu)” yalnız top filelere gittiyse seçilir. Kurtarıldıysa / dışarı gittiyse bu türe yazılmaz, ayrı katsayı da yoktur — kayda geçmez.</p>'
    +'<p class="note"><b>Sonucu bilinmeyen olaylar olasılıkla sayılır.</b> Verilmeyen penaltı 0,76 gol değerindedir. Kırmızı kartın etkisi kalan süreye yayılır: mağdur takıma gol beklentisi eklenir, rakibin on kişiye karşı attığı gol beklentisi kısılır. 90. dakikada kırmızı sıfırdır.</p>'
-   +'<p class="note"><b>Kesinlik yüzdesi ağırlık verir.</b> %100 net bir hata tam etki eder, %60 tartışmalı bir karar 0,6 katsayıyla girer. Hatalı Düdük sayımı yalnız %75 ve üstünü sayar.</p></div>';
+   +'<p class="note"><b>Kesinlik yüzdesi ağırlık verir.</b> %100 net bir hata tam etki eder, %60 tartışmalı bir karar 0,6 katsayıyla girer. Hatalı Düdük sayımı yalnız %75 ve üstünü sayar. Hızlı girişte üç basamak vardır: %95 kesin, %80 muhtemel, %60 tartışmalı.</p></div>';
 
   h+='<div class="card"><span class="lbl">Puan sınırı</span>'
    +'<p class="note" style="margin-top:0">Futbolda bir maçtan en fazla 3, en az 0 puan alınır ve düzeltme bu sınırı aşamaz. '
@@ -1681,7 +1720,9 @@ function vTeams(){
    +'<button class="btn ghost" onclick="exportData()">Dışa aktar</button>'
    +'<button class="btn ghost" onclick="document.getElementById(\'impFile\').click()">İçe aktar</button>'
    +'<input type="file" id="impFile" accept=".json" style="display:none" onchange="importData(this)"></div>'
-   +'<p class="note">Dışa aktar tüm veriyi .json olarak indirir. İçe aktar mevcut verinin yerine geçer ve bu ortak defteri beşiniz için birden değiştirir — kullanmadan önce haber ver.</p></div>';
+   +'<p class="note">Dışa aktar tüm veriyi .json olarak indirir. İçe aktar mevcut verinin yerine geçer ve bu ortak defteri beşiniz için birden değiştirir — kullanmadan önce haber ver.</p></div>'
+   +'<div class="card"><span class="lbl">Çakışma</span>'
+   +'<p class="note" style="margin-top:0">Kayıt etmeden önce ortak defter çekilir ve birleştirilir. <b>Farklı maçlar</b> yan yana durur. <b>Aynı maçta</b> iki kişi karar eklediyse ikisi de kalır (tür + mağdur + dakika aynıysa yüksek kesinlikli olan durur). Skor, hafta ve hakem alanında son kaydeden kazanır. Silinen maç 90 gün mezartaşında tutulur, sonra düşer.</p></div>';
   return h;
 }
 
