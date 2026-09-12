@@ -298,6 +298,10 @@ h1 span{color:var(--amber);font-style:italic;font-weight:500;letter-spacing:-.02
 .hafta-sayi b{color:var(--amber);font-weight:650;}
 .hafta-ic{padding:0 12px 12px;}
 
+.takimHucre{min-width:0;}
+.tartisma{display:block;font-size:11px;color:var(--dim);margin-top:2px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+
 .trow-t{cursor:pointer;}
 .trow-t:hover .team{color:var(--amber);}
 .trow-t.acik{background:var(--panel2);border-radius:var(--radius-sm);}
@@ -565,11 +569,18 @@ function extraPtsFromXg(gh,ga,dh,da){
   var b=realPts(gh,ga);
   return {home:eh-b[0], away:ea-b[1]};
 }
+/* Negatif beklenti (rakibin on kişiye düşüp baskılanması) karşı tarafa AKTARILAMAZ.
+   Eski kod öyle yapıyordu; sonuçta RED_SUPP fiilen RED_BASE'e ekleniyor, yani
+   "iki yönlü kırmızı" tek yönlü 1,0 katsayıya dönüşüyordu.
+   Doğrusu: kalan süre için iki tarafa da bir taban gol beklentisi konur,
+   baskılama bu tabandan düşülür. Sonuç, tabanlı hesabın kararlı ve kararsız
+   halleri arasındaki farktır — karar yoksa etki sıfır kalır. */
+var KALAN_TABAN=0.45;
 function kalanPuan(gh,ga,dh,da){
-  var h=dh, a=da;
-  if(h<0 && a>=0){ a+=-h; h=0; }
-  if(a<0 && h>=0){ h+=-a; a=0; }
-  return extraPtsFromXg(gh,ga,Math.max(0,h),Math.max(0,a));
+  if(Math.abs(dh)<0.001 && Math.abs(da)<0.001) return {home:0,away:0};
+  var ile=extraPtsFromXg(gh,ga,KALAN_TABAN+dh,KALAN_TABAN+da);
+  var siz=extraPtsFromXg(gh,ga,KALAN_TABAN,KALAN_TABAN);
+  return {home:ile.home-siz.home, away:ile.away-siz.away};
 }
 var _impCache={};
 function impactTemizle(){ _impCache={}; }
@@ -652,9 +663,10 @@ function matchImpactHesap(m){
       var kirpik=Math.max(0,Math.min(3,duz));
       var tasan=duz-kirpik;
       /* Beklenen puan 0–3 içinde kaldığında da: zaten 3 puanlık maçta
-         ek mağduriyet / zaten 0'da ek haksız kazanç sonuca yansımaz. */
-      if(tasan===0 && gercek>=3 && extraGol>0.05) tasan=extraGol;
-      if(tasan===0 && gercek<=0 && extraGol<-0.05) tasan=extraGol;
+         ek mağduriyet / zaten 0'da ek haksız kazanç sonuca yansımaz.
+         Kayan nokta yüzünden tasan tam 0 olmayabilir; eşik kullanılır. */
+      if(Math.abs(tasan)<1e-3 && gercek>=3 && extraGol>0.05) tasan=extraGol;
+      if(Math.abs(tasan)<1e-3 && gercek<=0 && extraGol<-0.05) tasan=extraGol;
       return {etki:kirpik-gercek, bosa:Math.max(0,tasan), fazla:Math.max(0,-tasan)};
     }
     var h=tek(im.home,r[0],im.gh), a=tek(im.away,r[1],im.ga);
@@ -1236,8 +1248,8 @@ function takimDetay(ad){
      +'<span class="dwho">'+(x.evde?'':'<span class="vs">@</span>')+tdot(x.rakip)+esc(x.rakip)+' <b class="dskor">'+x.skor+'</b></span>'
      +'<span class="'+(x.etki>=0?'dup':'ddown')+'">'+(etkili?(x.etki>=0?'+':'')+x.etki.toFixed(2):'—')+'</span></div>'
      +'<div class="dmeta">'+(x.hafta?esc(x.hafta)+'. hafta · ':'')+esc(x.hakem||'hakem girilmedi')
-     +(x.bosa>0.05?' · <span style="color:var(--amber)" title="Kazanırken uğradığı, tabloya yansımayan hata">sonuca yansımadı (~'+x.bosa.toFixed(2)+' gol)</span>':'')
-     +(x.fazla>0.05?' · <span style="color:var(--red)" title="Kaybederken yararlandığı, tabloya yansımayan hata">sonuca yansımadı (−'+x.fazla.toFixed(2)+' gol)</span>':'')
+     +(x.bosa>0.05?' · <span style="color:var(--amber)" title="Kazanırken uğradığı, tabloya yansımayan hata">sonuca yansımadı (~'+x.bosa.toFixed(2)+')</span>':'')
+     +(x.fazla>0.05?' · <span style="color:var(--red)" title="Kaybederken yararlandığı, tabloya yansımayan hata">sonuca yansımadı (−'+x.fazla.toFixed(2)+')</span>':'')
      +'</div>';
     x.kararlar.forEach(function(k){
       h+='<div class="dkarar"><span class="dnokta" style="background:'+(k.lehte?'var(--greenFill)':'var(--redFill)')+'"></span>'+esc(k.metin)+'</div>';
@@ -1599,7 +1611,7 @@ function vEtkiOzet(){
        +'<span class="ozet-ad">'+esc(r.ad)
        +'<span class="ozet-alt">'+r.mac+' maç · '+r.karar+' karar'
        +(r.etkili?' ('+r.etkili+"'i skoru değiştirdi)":' (hiçbiri skoru değiştirmedi)')
-       +(r.yansimayan>0.05?' · <span style="color:var(--amber)">'+r.yansimayan.toFixed(1)+' gol sonuca yansımadı</span>':'')
+       +(r.yansimayan>0.05?' · <span style="color:var(--amber)">'+r.yansimayan.toFixed(1)+' sonuca yansımadı</span>':'')
        +(enCok&&pay>0.7&&r.karar>=3?'<br><span style="color:var(--red)">kararlarının %'+Math.round(pay*100)+"'i tek takım lehine: "+esc(enCok)+'</span>'
          :(enCok?' · en çok <b>'+esc(enCok)+'</b> lehine':''))
        +'</span></span>'
@@ -1691,7 +1703,7 @@ function vRefs(){
   refs.forEach(function(r){
     var acik=S.acikHakem===r.name;
     h+='<div class="hafta" style="box-shadow:none;margin:0 0 8px">'
-     +'<div class="hafta-bas" role="button" tabindex="0" data-h="'+esc(r.name)+'" onclick="hakemAc(this.getAttribute(\'data-h\'))">'
+     +'<div class="hafta-bas" role="button" tabindex="0" data-h="'+esc(r.name)+'" onclick="hakemAc(this.getAttribute(\'data-h\'))" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();hakemAc(this.getAttribute(\'data-h\'));}">'
      +'<span class="hafta-ok'+(acik?' acik':'')+'">▾</span>'
      +'<span class="hafta-ad" style="font-size:16px">'+esc(r.name)+'</span>'
      +'<span class="hafta-sayi">'+r.games+' maç · '+r.decs+' karar'
@@ -1708,7 +1720,7 @@ function vRefs(){
          +'<div class="pts" style="color:var(--green)">'+v.f+'</div>'
          +'<div class="pts" style="color:var(--red)">'+v.a+'</div>'
          +'<div class="delta '+(v.pts>=0?'up':'down')+'">'+(v.pts>=0?'+':'')+v.pts.toFixed(1)
-         +(v.bosa>0.05?'<span class="mv" style="color:var(--amber)" title="puana dönüşemeyen ~gol">◦'+v.bosa.toFixed(1)+' gol</span>':'')
+         +(v.bosa>0.05?'<span class="mv" style="color:var(--amber)" title="puana dönüşemeyen mağduriyet">◦'+v.bosa.toFixed(1)+'</span>':'')
          +'</div></div>';
       });
       h+='</div>';
@@ -1731,14 +1743,13 @@ function vKurallar(){
    +'<p class="note">Şu an <b>'+S.matches.length+' maç</b>, <b>'+kararSay+' karar</b> kayıtlı.</p></div>';
 
   h+='<div class="card"><span class="lbl">Hesap nasıl işliyor</span>'
-   +'<p class="note" style="margin-top:0"><b>Tek bir maç katsayısı yok — her karar kendi dakikasıyla bölünür.</b> '
-   +'Karar i için <b>geçlik = dakika / 90</b> (0…1). Kesinliği p ise: skor ±1 olma ihtimali <b>p × geçlik</b>, kalan <b>p × (1 − geçlik)</b> Poisson λ\'ya xG olarak eklenir. '
-   +'20′ ve 89′ aynı maçtaysa 20′ neredeyse tamamen Poisson, 89′ neredeyse tamamen skor düzeltmesi; biri diğerini “geç” yapmaz. '
-   +'<b>Erken hata maçı silmez:</b> oynanmış skor durur; kalan süreye ek gol Poisson\'u biner (maçı 90 dakika baştan kurmaz). Geç hata skoru değiştirir. '
-   +'Eski modelde wDisc = max(dakika)/90 idi ve bütün maç tek kolda harmanlanırdı — o kalktı.</p>'
+   +'<p class="note" style="margin-top:0"><b>Her karar kendi dakikasıyla bölünür.</b> '
+   +'Karar için <b>geçlik = dakika / 90</b> (0…1). Kesinliği p ise: skorun ±1 değişme ihtimali <b>p × geçlik</b>, kalan <b>p × (1 − geçlik)</b> kalan süreye gol beklentisi olarak eklenir. '
+   +'20′ ve 89′ aynı maçtaysa 20′ neredeyse tamamen olasılık, 89′ neredeyse tamamen skor düzeltmesi olur; biri diğerini “geç” yapmaz.</p>'
+   +'<p class="note"><b>Erken hata maçı silmez.</b> Oynanmış skor yerinde durur; yalnızca kalan süreye ek gol beklentisi biner. Maç 90 dakika baştan kurulmaz.</p>'
    +'<p class="note"><b>Sonucu bilinen olaylar tam gol sayılır.</b> Golle biten yanlış penaltı ya da sayılan ofsaytlı gol geri alınırken 1 tam gol düşülür.</p>'
-   +'<p class="note"><b>Kaçan yanlış penaltı etkisi sıfırdır.</b> “Rakibe yanlış verilen penaltı (gol oldu)” yalnız top filelere gittiyse seçilir. Kurtarıldıysa / dışarı gittiyse bu türe yazılmaz, ayrı katsayı da yoktur — kayda geçmez.</p>'
-   +'<p class="note"><b>Sonucu bilinmeyen olaylar olasılıkla sayılır.</b> Verilmeyen penaltı 0,76 gol değerindedir. Kırmızı kartın etkisi kalan süreye yayılır: mağdur takıma gol beklentisi eklenir, rakibin on kişiye karşı attığı gol beklentisi kısılır. 90. dakikada kırmızı sıfırdır.</p>'
+   +'<p class="note"><b>Kaçan yanlış penaltı kayda geçmez.</b> “Rakibe yanlış verilen penaltı (gol oldu)” yalnız top filelere gittiyse seçilir. Kurtarıldıysa ya da dışarı gittiyse skor zaten değişmemiştir; bu türe yazılmaz.</p>'
+   +'<p class="note"><b>Sonucu bilinmeyen olaylar olasılıkla sayılır.</b> Verilmeyen penaltı 0,76 gol değerindedir. Kırmızı kartın etkisi kalan süreye yayılır: mağdur takımın gol beklentisi artar, on kişi kalan rakibin gol beklentisi düşer. İki yön ayrı katsayılarla işlenir (0,65 ve 0,35). 90. dakikada kırmızının etkisi sıfırdır.</p>'
    +'<p class="note"><b>Kesinlik yüzdesi ağırlık verir.</b> %100 net bir hata tam etki eder, %60 tartışmalı bir karar 0,6 katsayıyla girer. Hatalı Düdük sayımı yalnız %75 ve üstünü sayar. Hızlı girişte üç basamak vardır: %95 kesin, %80 muhtemel, %60 tartışmalı.</p></div>';
 
   h+='<div class="card"><span class="lbl">Puan sınırı</span>'
@@ -1895,7 +1906,7 @@ function saveMatch(){
   var d=S.draft;
   if(d.home===d.away){ S.msg="Ev sahibi ve deplasman aynı takım olamaz."; render(); return; }
   if(!S.teams.length||S.teams.indexOf(d.home)<0||S.teams.indexOf(d.away)<0){
-    S.msg="Takımlardan biri listede yok. Takımlar sekmesinden ekle."; render(); return; }
+    S.msg="Takımlardan biri listede yok."; render(); return; }
   var dup=findDupes(d.home,d.away,d.week,S.editId);
   if(dup.length){
     var lst=dup.map(function(m){return "  • "+m.hg+"-"+m.ag+(m.week?" ("+m.week+". hafta)":"")+(m.by?" — "+m.by:"");}).join("\n");
@@ -1985,7 +1996,10 @@ function norm(s){
 /* İnternetten hafta çekme: TheSportsDB eventsround.php.
    Ücretsiz "123" anahtarı sınırlı ve paylaşımlı; yoğun kullanımda ya da
    kaynak değişirse çalışmayabilir. Başarısız olursa kullanıcı elle arayıp
-   yapıştırma kutusunu kendisi doldurmaya devam edebilir — akış bozulmaz. */
+   yapıştırma kutusunu kendisi doldurmaya devam edebilir — akış bozulmaz.
+   ÖNEMLİ: 2026-27 boş dönerse eski sezonlar denenir. Hangi sezondan
+   geldiği mutlaka yazılır, yoksa geçen sezonun skorları bu sezonun
+   haftası diye deftere girer. */
 function internettenCek(){
   if(MISAFIR||S.cekBusy) return;
   var el=document.getElementById("cekHafta");
@@ -1993,10 +2007,12 @@ function internettenCek(){
   if(!isFinite(hafta)||hafta<1||hafta>34){ S.cekMsg="Hafta numarası 1 ile 34 arasında olmalı."; S.cekHata=true; render(); return; }
   S.cekHaftaNo=String(hafta); S.cekBusy=true; S.cekMsg=""; S.cekHata=false; render();
 
+  var KOK="https://www.thesportsdb.com/api/v1/json/123/eventsround.php?id=4339&r="+hafta;
+  var HEDEF="2026-2027";
   var denemeler=[
-    "https://www.thesportsdb.com/api/v1/json/123/eventsround.php?id=4339&r="+hafta+"&s=2026-2027",
-    "https://www.thesportsdb.com/api/v1/json/123/eventsround.php?id=4339&r="+hafta+"&s=2025-2026",
-    "https://www.thesportsdb.com/api/v1/json/123/eventsround.php?id=4339&r="+hafta
+    {s:HEDEF,                 url:KOK+"&s=2026-2027"},
+    {s:"2025-2026",           url:KOK+"&s=2025-2026"},
+    {s:"sezon belirtilmemiş", url:KOK}
   ];
   function dene(i){
     if(i>=denemeler.length){
@@ -2004,7 +2020,7 @@ function internettenCek(){
       S.cekMsg="Çekilemedi. Kaynak bu lig/sezon için boş döndü ya da bu cihazdan ulaşılamıyor; haftayı elle yapıştırabilirsin.";
       S.cekHata=true; render(); return;
     }
-    fetch(denemeler[i]).then(function(r){
+    fetch(denemeler[i].url).then(function(r){
       if(!r.ok) throw new Error("sunucu "+r.status+" döndü");
       return r.json();
     }).then(function(data){
@@ -2021,12 +2037,14 @@ function internettenCek(){
       });
       var kutu=document.getElementById("pasteIn");
       if(kutu) kutu.value = satirlar.length ? JSON.stringify(satirlar,null,1) : "";
+      var yanlisSezon=(denemeler[i].s!==HEDEF);
       var parts=[];
+      if(yanlisSezon) parts.push("DİKKAT: "+HEDEF+" sezonu boş döndü, bu veri "+denemeler[i].s+" kaynağından geliyor — kaydetmeden önce her satırı doğrula");
       if(satirlar.length) parts.push(satirlar.length+" maç bulundu, hakem alanlarını doldurup \"Maçları ekle\"ye basmadan önce gözden geçir");
       if(skorsuz) parts.push(skorsuz+" maç henüz oynanmamış");
       if(eslesmeyen.length) parts.push("tanınmayan takım: "+eslesmeyen.join(", "));
       S.cekMsg = parts.length ? parts.join(". ")+"." : "Bu haftadan kullanılabilir maç çıkmadı.";
-      S.cekHata = !satirlar.length;
+      S.cekHata = !satirlar.length || yanlisSezon;
       render();
     }).catch(function(){ dene(i+1); });
   }
