@@ -438,6 +438,29 @@ details .note{margin-top:10px;}
 .qelle .btn{flex:0 0 auto;padding:0 16px;}
 .qmin .qbtn{padding:11px 2px;min-height:44px;font-family:var(--font-num);font-variant-numeric:tabular-nums;font-size:13px;}
 
+.ayar-btn{
+  width:36px;height:36px;padding:0;border-radius:50%;
+  background:none;border:0;box-shadow:0 0 0 1px var(--edge);
+  color:var(--muted);display:inline-flex;align-items:center;justify-content:center;
+  cursor:pointer;flex:0 0 auto;
+}
+.ayar-btn svg{width:17px;height:17px;}
+.ayar-btn:hover,.ayar-btn:focus-visible{color:var(--ink);box-shadow:0 0 0 1px var(--ink);}
+.card-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+.kopya-link{
+  background:none;border:0;padding:0;margin:0;
+  color:var(--amber);font:inherit;font-size:12.5px;font-weight:650;
+  cursor:pointer;white-space:nowrap;
+}
+.kopya-link:hover{text-decoration:underline;}
+.tablo-arac{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:2px 0 12px;}
+.chip{
+  background:transparent;border:0;box-shadow:0 0 0 1px var(--edge);
+  color:var(--muted);padding:6px 11px;min-height:32px;border-radius:99px;
+  font-size:12px;font-weight:600;font-family:inherit;cursor:pointer;line-height:1;
+}
+.chip.on{color:var(--ink);box-shadow:0 0 0 1.5px var(--ink);background:var(--panel);}
+.chip:focus-visible{outline:2px solid var(--amber);outline-offset:2px;}
 .temabtn{
   background:none;border:0;box-shadow:0 0 0 1px var(--edge);
   color:var(--muted);padding:7px 12px;min-height:36px;border-radius:99px;
@@ -802,7 +825,7 @@ var MISAFIR_BIN = "7e5bcb28b0d4471ca91a";
 var TABS=MISAFIR
  ?[["table","Tablo"],["matches","Maçlar"],["refs","Hakemler"]]
  :[["table","Tablo"],["add","Maç ekle"],["matches","Maçlar"],
-          ["refs","Hakemler"],["teams","Ayarlar"]];
+          ["refs","Hakemler"]];
 var ICO={
   duduk:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" aria-hidden="true"><path d="M3 10h9l4-3v10l-4-3H3z"/><path d="M19 9a5 5 0 0 1 0 6"/></svg>',
   table:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>',
@@ -1381,8 +1404,14 @@ function vTable(){
     return '<span class="rozet r-'+z.sinif+'" title="'+z.tam+'">'+z.kisa+'</span>';
   }
 
-  var h='<div class="card"><span class="lbl">Düzeltilmiş sıralama</span>';
-  h+='<p class="note" style="margin-top:0">Puan = gerçek puan + düdük payı. Fark yeşilse mağduriyet, kırmızıysa haksız kazanç.</p>';
+  var h='<div class="card"><div class="card-head"><span class="lbl">Düzeltilmiş sıralama</span>';
+  h+='<button class="kopya-link" onclick="ozetKopyala()">Özeti kopyala</button></div>';
+  h+='<p class="note" style="margin-top:0">Puan = gerçek + uçan pay. Yeşil fark mağduriyet, kırmızı haksız kazanç.</p>';
+  h+='<div class="tablo-arac">';
+  h+='<button class="chip'+(S.gosterGercek?' on':'')+'" onclick="tabloPanel(\'gosterGercek\')">TFF sırası</button>';
+  h+='<button class="chip'+(S.gosterDenge?' on':'')+'" onclick="tabloPanel(\'gosterDenge\')">Kayıt sayımı</button>';
+  h+='<button class="chip'+(S.gosterBig4?' on':'')+'" onclick="tabloPanel(\'gosterBig4\')">Dört büyük</button>';
+  h+='</div>';
   h+='<div class="thead"><div class="pos">#</div><div>Takım</div><div></div><div class="pts">Puan</div><div class="pts">Fark</div></div><div class="tstack">';
   T.adj.forEach(function(r){
     var move=r.realPos-r.adjPos;
@@ -1396,12 +1425,7 @@ function vTable(){
      +(move!==0?'<span class="mv">'+(move>0?'▲':'▼')+Math.abs(move)+'</span>':'')+'</div></div>';
     if(acik) h+=takimDetay(r.name);
   });
-  h+='</div><div class="btnrow" style="margin-top:14px">'
-   +'<button class="btn ghost" onclick="ozetKopyala()">Özeti kopyala</button>'
-   +'<button class="btn ghost'+(S.gosterDenge?' on':'')+'" onclick="tabloPanel(\'gosterDenge\')">Kayıt sayımı</button>'
-   +'<button class="btn ghost'+(S.gosterGercek?' on':'')+'" onclick="tabloPanel(\'gosterGercek\')">TFF sırası</button>'
-   +'<button class="btn ghost'+(S.gosterBig4?' on':'')+'" onclick="tabloPanel(\'gosterBig4\')">Dört büyük</button>'
-   +'</div></div>';
+  h+='</div></div>';
 
   if(S.gosterDenge){
     var dengesiz=T.real.filter(function(r){
@@ -2196,7 +2220,7 @@ function render(){
    +'<p class="sub">Hakem kararları düzeltilseydi puan tablosu ne olurdu?</p>'
    +'<div class="kpis"><div class="kpi"><b>'+S.matches.length+'</b><span>maç</span></div>'
    +'<div class="kpi"><b>'+(maxHafta?maxHafta:"—")+'</b><span>hafta</span></div>'
-   +'<div class="kpi"><b>'+(pay?pay.toFixed(1):"0")+'</b><span>düdük payı</span></div></div>'
+   +'<div class="kpi" title="Karar düzeltilseydi mağdurlara dönecek beklenen puan"><b>'+(pay?pay.toFixed(1):"0")+'</b><span>uçan puan</span></div></div>'
    +'<div class="who">'
    +(MISAFIR
       ? '<span class="misafir">Misafir görünümü</span>'
@@ -2206,6 +2230,7 @@ function render(){
         +'<button onclick="switchMe()">değiştir</button>'
         +'<button class="temabtn" onclick="temaDegis()">'+temaEtiket()+'</button>'
         +'<button class="temabtn" onclick="go(\'method\')">Kurallar</button>'
+        +'<button class="ayar-btn" onclick="go(\'teams\')" title="Ayarlar" aria-label="Ayarlar">'+(ICO.teams||'')+'</button>'
         +'<span class="by">'+(S.sync==="ortak"?'● ortak defter':S.sync==="hata"?'● bağlantı hatası':S.sync==="…"?'●':'● yalnız bu cihaz')+'</span>')
    +'</div></header>'
    +(S.ornek&&!MISAFIR&&!binUrl()?'<div class="warn">Örnek sezon — ortak deftere yazılmaz. Ayarlar’dan npoint kodunu yapıştırınca gerçek deftere geçersin.</div>':'')
