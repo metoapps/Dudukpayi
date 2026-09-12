@@ -1422,6 +1422,7 @@ function vTable(){
   h+='</div>';
   h+='<p class="note" style="margin-top:0">'+(notlar[gor]||notlar.adj)+'</p>';
   h+='<div class="tablo-arac">';
+  h+='<button class="chip'+(gor==='adj'?' on':'')+'" onclick="tabloGor(\'adj\')">Düzeltilmiş</button>';
   h+='<button class="chip'+(gor==='tff'?' on':'')+'" onclick="tabloGor(\'tff\')">TFF sırası</button>';
   h+='<button class="chip'+(gor==='hata'?' on':'')+'" onclick="tabloGor(\'hata\')">Hata sayısı</button>';
   h+='<button class="chip'+(gor==='big4'?' on':'')+'" onclick="tabloGor(\'big4\')">Dört büyük</button>';
@@ -2302,7 +2303,7 @@ function temaEtiket(){
 }
 
 function switchMe(){ S.me=null; render(); }
-function tabloGor(k){ S.tabloGor=(S.tabloGor===k)?'adj':k; render(); }
+function tabloGor(k){ S.tabloGor=k||'adj'; render(); }
 function tabloPanel(k){ tabloGor(k==='gosterGercek'?'tff':k==='gosterDenge'?'hata':k==='gosterBig4'?'big4':'adj'); }
 function go(t){
   if(MISAFIR && ["add","teams"].indexOf(t)>=0) return;
