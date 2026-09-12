@@ -357,11 +357,12 @@ button.btn:hover{filter:brightness(1.08);}
 button.btn:active{transform:scale(.96);}
 button.btn:disabled{opacity:.32;}
 button.ghost{background:var(--panel);color:var(--body);box-shadow:0 0 0 1.5px var(--edge);border:0;}
+button.ghost.on{box-shadow:0 0 0 1.5px var(--amber);color:var(--ink);background:color-mix(in oklab, var(--amberFill) 22%, var(--panel));}
 button.danger{background:none;color:var(--red);box-shadow:0 0 0 1.5px color-mix(in oklab, var(--red) 38%, transparent);border:0;}
 button.btn:focus-visible{outline:2px solid var(--amber);outline-offset:2px;}
 .btnrow{display:flex;gap:10px;flex-wrap:wrap;}
 
-.thead,.trow{display:grid;grid-template-columns:26px minmax(0,1fr) 42px 46px 72px 48px;gap:6px;align-items:center;}
+.thead,.trow{display:grid;grid-template-columns:26px minmax(0,1fr) 42px 50px 52px;gap:6px;align-items:center;}
 .thead{padding-bottom:10px;border-bottom:1px solid var(--edge);
   font-size:11px;font-weight:650;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);}
 .trow{padding:11px 0;border-bottom:1px solid var(--edge2);}
@@ -465,7 +466,7 @@ details .note{margin-top:10px;}
   .tab{font-size:12.5px;padding:11px 9px;gap:5px;}
   .tab svg{width:13px;height:13px;}
   .card{padding:16px;}
-  .thead,.trow{grid-template-columns:22px minmax(0,1fr) 38px 40px 64px 44px;gap:5px;}
+  .thead,.trow{grid-template-columns:22px minmax(0,1fr) 38px 44px 48px;gap:5px;}
   .mscore{font-size:20px;}
 }
 @media (prefers-reduced-motion:reduce){
@@ -788,19 +789,20 @@ function buildTable(){
 }
 
 /* ---------------- Durum ---------------- */
-var S={tema:null, me:null, teams:DEFAULT_TEAMS.slice(), matches:[], tab:"table", draft:null, editId:null, acikTakim:null,
+var S={tema:"acik", me:null, teams:DEFAULT_TEAMS.slice(), matches:[], tab:"table", draft:null, editId:null, acikTakim:null,
        msg:"", binId:"", sync:"yerel", quick:null,
        cekHaftaNo:"", cekBusy:false, cekMsg:"", cekHata:false, hakemSira:"hata",
-       silinen:{}, acikHafta:null, acikHakem:null, ornek:false, yerineYaz:false, acikEtkili:false};
+       silinen:{}, acikHafta:null, acikHakem:null, ornek:false, yerineYaz:false, acikEtkili:false,
+       gosterGercek:false, gosterDenge:false, gosterBig4:false};
 /* Misafir kipi: adres ?misafir ile bitiyorsa uygulama salt okunur açılır.
    Kimlik sorulmaz, yazma yolları kapanır, düzenleme sekmeleri gizlenir. */
 var MISAFIR = /(^|[?&#])misafir(=|&|$)/.test(location.search + location.hash);
 var MISAFIR_BIN = "7e5bcb28b0d4471ca91a";
 
 var TABS=MISAFIR
- ?[["table","Tablo"],["big4","Dört Büyük"],["matches","Maçlar"],["refs","Hakemler"],["method","Kurallar"]]
- :[["table","Tablo"],["big4","Dört Büyük"],["add","Maç ekle"],["matches","Maçlar"],
-          ["refs","Hakemler"],["teams","Ayarlar"],["method","Kurallar"]];
+ ?[["table","Tablo"],["matches","Maçlar"],["refs","Hakemler"]]
+ :[["table","Tablo"],["add","Maç ekle"],["matches","Maçlar"],
+          ["refs","Hakemler"],["teams","Ayarlar"]];
 var ICO={
   duduk:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" aria-hidden="true"><path d="M3 10h9l4-3v10l-4-3H3z"/><path d="M19 9a5 5 0 0 1 0 6"/></svg>',
   table:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>',
@@ -1290,7 +1292,7 @@ function vEtkili(){
   h+='<p class="note">Sağdaki sayı, o karar hiç yaşanmasaydı iki takım arasında oynayacak <b>toplam puandır</b>. '
    +'Altta mağdurun kazancı ve rakibin kaybı ayrı ayrı yazılıdır. '
    +'Kararlar birbirini etkilediği için tek tek katkıların toplamı maçın toplam etkisine birebir eşit olmayabilir.</p>'
-   +'<div class="btnrow"><button class="btn ghost" onclick="etkiliKopyala()">Listeyi kopyala</button></div></div>';
+   +'</div>';
   return h;
 }
 
@@ -1364,9 +1366,7 @@ function ozetKopyala(){
 
 function vTable(){
   if(!S.matches.length) return emptyPitch('Henüz maç yok.<br>“Maç ekle” sekmesinden haftayı çek ya da tek maç gir.');
-  var T=buildTable(), maxAbs=1.5;
-  T.adj.forEach(function(r){maxAbs=Math.max(maxAbs,Math.abs(r.mid),Math.abs(r.low),Math.abs(r.high));});
-  var X=function(v){return 50+(v/maxAbs)*50;};
+  var T=buildTable();
   var LIG_ROZET={
     1:{kisa:"ŞL",tam:"Şampiyonlar Ligi",sinif:"sl"},
     2:{kisa:"ŞL ön",tam:"Şampiyonlar Ligi ön eleme",sinif:"slon"},
@@ -1380,71 +1380,67 @@ function vTable(){
     var z=LIG_ROZET[pos]; if(!z) return "";
     return '<span class="rozet r-'+z.sinif+'" title="'+z.tam+'">'+z.kisa+'</span>';
   }
-  function ligSinif(pos){
-    var z=LIG_ROZET[pos]; return z?(" zona-"+z.sinif):"";
-  }
 
   var h='<div class="card"><span class="lbl">Düzeltilmiş sıralama</span>';
-  h+='<p class="note" style="margin-top:0">Puan = gerçek puan + düdük payı. Yeşil: kararlar düzeltilseydi bu takıma eklenecek beklenen puan. Bant: dar (%75+) ile geniş (kesinlik+20) yorum. ŞL / AL / KL / Küme rozeti o takımın sırasının götürdüğü yerdir.</p>';
-  h+='<div class="legend"><span><i class="lg"></i>mağduriyet</span><span><i class="lr"></i>haksız kazanç</span></div>';
-  h+='<div class="thead"><div class="pos">#</div><div>Takım</div><div></div><div class="pts">Puan</div><div class="ctr">Sapma</div><div class="pts">Fark</div></div><div class="tstack">';
+  h+='<p class="note" style="margin-top:0">Puan = gerçek puan + düdük payı. Fark yeşilse mağduriyet, kırmızıysa haksız kazanç.</p>';
+  h+='<div class="thead"><div class="pos">#</div><div>Takım</div><div></div><div class="pts">Puan</div><div class="pts">Fark</div></div><div class="tstack">';
   T.adj.forEach(function(r){
     var move=r.realPos-r.adjPos;
     var lo=Math.min(r.low,r.high), hi=Math.max(r.low,r.high);
-    var bx1=X(lo), bx2=X(hi), w=Math.abs(X(r.mid)-50);
     var acik = S.acikTakim===r.name;
-    h+='<div class="trow trow-t'+(acik?' acik':'')+ligSinif(r.adjPos)+'" data-takim="'+esc(r.name)+'" onclick="takimAc(this.getAttribute(\'data-takim\'))" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();takimAc(this.getAttribute(\'data-takim\'));}" role="button" tabindex="0">'
+    h+='<div class="trow trow-t'+(acik?' acik':'')+'" data-takim="'+esc(r.name)+'" onclick="takimAc(this.getAttribute(\'data-takim\'))" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();takimAc(this.getAttribute(\'data-takim\'));}" role="button" tabindex="0">'
      +'<div class="pos rank'+(r.adjPos<=3?(' r'+r.adjPos):'')+'">'+r.adjPos+'</div>'+teamCell(r.name)
      +'<div class="liga">'+ligRozet(r.adjPos)+'</div>'
      +'<div class="pts">'+(r.pts+r.mid).toFixed(1)+'</div>'
-     +'<div class="drift" title="'+lo.toFixed(1)+' … '+hi.toFixed(1)+' puan"><div class="axis"></div>'
-     +((bx2-bx1)>0.8?'<div class="band" style="left:'+bx1+'%;width:'+(bx2-bx1)+'%"></div>':'')
-     +'<div class="bar '+(r.mid>=0?'pos':'neg')+'" style="left:'+(r.mid>=0?50:50-w)+'%;width:'+w+'%"></div></div>'
-     +'<div class="delta '+(r.mid>=0?'up':'down')+'">'+(r.mid>=0?'+':'')+r.mid.toFixed(1)
+     +'<div class="delta '+(r.mid>=0?'up':'down')+'" title="aralık '+lo.toFixed(1)+' … '+hi.toFixed(1)+'">'+(r.mid>=0?'+':'')+r.mid.toFixed(1)
      +(move!==0?'<span class="mv">'+(move>0?'▲':'▼')+Math.abs(move)+'</span>':'')+'</div></div>';
     if(acik) h+=takimDetay(r.name);
   });
-  h+='</div><div class="btnrow" style="margin-top:14px"><button class="btn ghost" onclick="ozetKopyala()">Özeti kopyala</button></div></div>';
+  h+='</div><div class="btnrow" style="margin-top:14px">'
+   +'<button class="btn ghost" onclick="ozetKopyala()">Özeti kopyala</button>'
+   +'<button class="btn ghost'+(S.gosterDenge?' on':'')+'" onclick="tabloPanel(\'gosterDenge\')">Kayıt sayımı</button>'
+   +'<button class="btn ghost'+(S.gosterGercek?' on':'')+'" onclick="tabloPanel(\'gosterGercek\')">TFF sırası</button>'
+   +'<button class="btn ghost'+(S.gosterBig4?' on':'')+'" onclick="tabloPanel(\'gosterBig4\')">Dört büyük</button>'
+   +'</div></div>';
 
-  var dengesiz=T.real.filter(function(r){
-    var leh=r.forC+r.forT, al=r.agC+r.agT;
-    return r.p>=3 && ((al>0&&leh===0)||(leh>0&&al===0));
-  });
-  h+='<div class="card"><span class="lbl">Kayıt dengesi</span>'
-   +'<p class="note" style="margin-top:0">Sapma, üstteki düdük payının aynısıdır. Leh/aleyh karar sayısıdır — renk puan anlamı taşımaz. Bir sütun boşsa kayıt eksiktir.</p>';
-  if(dengesiz.length){
-    h+='<p class="note">Şu takımlara en az üç maç işlenmiş ama kararların hepsi tek yönde '
-     +'(yalnız lehte veya yalnız aleyhte): <b>'+dengesiz.map(function(r){return esc(r.name);}).join(', ')+'</b>. '
-     +'Bu “hakem hep bunları cezalandırdı” demek değil. Çoğu zaman karşı maçlara henüz karar girilmemiş demektir — defteri dengelemek için o maçlara bakın.</p>';
+  if(S.gosterDenge){
+    var dengesiz=T.real.filter(function(r){
+      var leh=r.forC+r.forT, al=r.agC+r.agT;
+      return r.p>=3 && ((al>0&&leh===0)||(leh>0&&al===0));
+    });
+    h+='<div class="card"><span class="lbl">Kayıt sayımı</span>'
+     +'<p class="note" style="margin-top:0">Kaç karar lehte / aleyhte girildi. Puan değil, defter kontrolü.</p>';
+    if(dengesiz.length){
+      h+='<p class="note">Şu takımlara en az üç maç işlenmiş ama kararların hepsi tek yönde: <b>'
+       +dengesiz.map(function(r){return esc(r.name);}).join(', ')+'</b>. Karşı maçlara henüz karar girilmemiş olabilir.</p>';
+    }
+    h+='<div class="thead" style="grid-template-columns:1fr 52px 44px 44px"><div>Takım</div><div class="pts">Fark</div><div class="pts">Leh</div><div class="pts">Aleyh</div></div>';
+    T.real.slice().sort(function(a,b){return b.mid-a.mid || b.agC-a.agC || a.name.localeCompare(b.name,'tr');}).forEach(function(r){
+      h+='<div class="trow" style="grid-template-columns:1fr 52px 44px 44px">'
+       +teamCell(r.name)
+       +'<div class="delta '+(r.mid>=0?'up':'down')+'">'+(r.mid>=0?'+':'')+r.mid.toFixed(1)+'</div>'
+       +'<div class="pts">'+r.forC+(r.forT?'<span style="color:var(--dim);font-size:11px">+'+r.forT+'</span>':'')+'</div>'
+       +'<div class="pts">'+r.agC+(r.agT?'<span style="color:var(--dim);font-size:11px">+'+r.agT+'</span>':'')+'</div></div>';
+    });
+    h+='</div>';
   }
-  h+='<div class="thead" style="grid-template-columns:1fr 52px 44px 44px"><div>Takım</div><div class="pts">Sapma</div><div class="pts">Leh</div><div class="pts">Aleyh</div></div>';
-  T.real.slice().sort(function(a,b){return b.mid-a.mid || b.agC-a.agC || a.name.localeCompare(b.name,'tr');}).forEach(function(r){
-    var tek=(r.p>=3)&&((r.agC+r.agT)>0&&(r.forC+r.forT)===0||(r.forC+r.forT)>0&&(r.agC+r.agT)===0);
-    var notlar=[];
-    if(r.agT) notlar.push(r.agT+" tartışmalı aleyhte");
-    if(r.forT) notlar.push(r.forT+" tartışmalı lehte");
-    h+='<div class="trow" style="grid-template-columns:1fr 52px 44px 44px">'
-     +'<div class="takimHucre">'+teamCell(r.name)
-     +(notlar.length?'<span class="tartisma">'+notlar.join(" · ")+'</span>':'')
-     +'</div>'
-     +'<div class="delta '+(r.mid>=0?'up':'down')+'">'+(r.mid>=0?'+':'')+r.mid.toFixed(1)+'</div>'
-     +'<div class="pts">'+r.forC+(r.forT?'<span style="color:var(--dim);font-size:11px">+'+r.forT+'</span>':'')+'</div>'
-     +'<div class="pts" style="color:'+(tek?'var(--amber)':'var(--ink)')+'">'+r.agC+(r.agT?'<span style="color:var(--dim);font-size:11px">+'+r.agT+'</span>':'')+'</div></div>';
-  });
-  h+='</div>';
 
-  var gcols='24px minmax(0,1fr) 42px 30px 44px 40px 40px';
-  h+='<div class="card"><span class="lbl">Gerçek sıralama</span>'
-   +'<div class="thead" style="grid-template-columns:'+gcols+'"><div class="pos">#</div><div>Takım</div><div></div><div class="pts">O</div><div class="pts">A:Y</div><div class="pts">Av</div><div class="pts">P</div></div>';
-  T.real.forEach(function(r){
-    h+='<div class="trow'+ligSinif(r.realPos)+'" style="grid-template-columns:'+gcols+'"><div class="pos">'+r.realPos+'</div>'
-     +teamCell(r.name)+'<div class="liga">'+ligRozet(r.realPos)+'</div>'+'<div class="pts">'+r.p+'</div>'
-     +'<div class="pts" style="color:var(--muted)">'+r.gf+':'+r.ga+'</div>'
-     +'<div class="pts">'+((r.gf-r.ga)>0?'+':'')+(r.gf-r.ga)+'</div>'
-     +'<div class="pts" style="color:var(--amber)">'+r.pts+'</div></div>';
-  });
-  h+='</div>';
-  h+='<p class="note">Gerçek sıra TFF kuralıdır: puan, ikili seri bitmişse kendi araları, sonra genel averaj, sonra atılan gol. Averaj yalnız girilen skorlardan gelir. Düzeltilmiş tabloda eşitlik beklenen gol kaymasıyla bozulur.</p>';
+  if(S.gosterGercek){
+    var gcols='24px minmax(0,1fr) 42px 30px 44px 40px 40px';
+    h+='<div class="card"><span class="lbl">TFF sırası</span>'
+     +'<p class="note" style="margin-top:0">Düdük payı yok. Puan, ikili seri, averaj, atılan gol.</p>'
+     +'<div class="thead" style="grid-template-columns:'+gcols+'"><div class="pos">#</div><div>Takım</div><div></div><div class="pts">O</div><div class="pts">A:Y</div><div class="pts">Av</div><div class="pts">P</div></div>';
+    T.real.forEach(function(r){
+      h+='<div class="trow" style="grid-template-columns:'+gcols+'"><div class="pos">'+r.realPos+'</div>'
+       +teamCell(r.name)+'<div class="liga">'+ligRozet(r.realPos)+'</div>'+'<div class="pts">'+r.p+'</div>'
+       +'<div class="pts" style="color:var(--muted)">'+r.gf+':'+r.ga+'</div>'
+       +'<div class="pts">'+((r.gf-r.ga)>0?'+':'')+(r.gf-r.ga)+'</div>'
+       +'<div class="pts" style="color:var(--amber)">'+r.pts+'</div></div>';
+    });
+    h+='</div>';
+  }
+
+  if(S.gosterBig4) h+=vBig4();
   return h;
 }
 
@@ -1741,27 +1737,6 @@ function vEtkiOzet(){
     }
   }
 
-  if(d.takimlar.length){
-    h+='<div class="ozet-bas" style="margin-top:18px">Tablo Farkı’nın dökümü</div>'
-     +'<p class="note" style="margin-top:0">Bu bir puan tablosu değil. Tablo’daki Fark tek net sayıdır; burada o net ikiye ayrılır. '
-     +'<b>Net = alacak − haksız</b> ve Tablo’daki Fark ile aynıdır.</p>'
-     +'<div class="ozet-sat ozet-kafa"><span class="ozet-no"></span><span class="ozet-ad">Takım</span>'
-     +'<span class="ozet-ik" style="grid-template-columns:52px 52px 52px"><i>haksız</i><i>alacak</i><i>net</i></span></div>';
-    d.takimlar.forEach(function(tm,i){
-      var net=(tm.kayip||0)-(tm.kazanc||0);
-      h+='<div class="ozet-sat">'
-       +'<span class="ozet-no">'+(i+1)+'</span>'
-       +'<span class="ozet-ad">'+esc(tm.ad)
-       +'<span class="ozet-alt">'+tm.etkiliLeh+' lehine · '+tm.etkiliAleyh+' aleyhine işleyen karar</span></span>'
-       +'<span class="ozet-ik" style="grid-template-columns:52px 52px 52px">'
-       +'<i class="art">'+(tm.kazanc>0.05?'+'+tm.kazanc.toFixed(1):'—')+'</i>'
-       +'<i class="eksi">'+(tm.kayip>0.05?'+'+tm.kayip.toFixed(1):'—')+'</i>'
-       +'<i class="'+(net>=0?'eksi':'art')+'">'+(net>=0?'+':'')+net.toFixed(1)+'</i></span></div>';
-    });
-    h+='<p class="note"><b style="color:var(--red)">Haksız</b>: şu an puanda duran, karar düzeltilirse düşecek. '
-     +'<b style="color:var(--green)">Alacak</b>: karar düzeltilirse eklenecek. '
-     +'<b>Net</b>, Tablo sekmesindeki Fark sütununun aynısıdır.</p>';
-  }
   return h+'</div>';
 }
 
@@ -1868,15 +1843,16 @@ function vKurallar(){
   h+='<p class="note">Her karar <b>mağdur taraf</b> üzerinden girilir: iki takımdan hangisi haksızlığa uğradıysa o seçilir. Aynı maçta iki takım için de karar girilebilir.</p>'
    +'<p class="note">Karar girilmezse maç tabloya etkisiz kaydedilir. Bu normaldir; maçların çoğunda tartışmalı karar yoktur.</p></div>';
 
+  h+='<div class="card"><span class="lbl">Çakışma</span>'
+   +'<p class="note" style="margin-top:0">Kayıt etmeden önce ortak defter çekilir ve birleştirilir. Farklı maçlar yan yana durur. Aynı maçta iki kişi karar eklediyse ikisi de kalır. Bir karar silinirse mezartaşı düşer. Skor, hafta ve hakemde son kaydeden kazanır.</p></div>';
+  h+='<div class="card"><span class="lbl">Misafir adresi</span>'
+   +'<p class="note" style="margin-top:0">npoint kutu kodu sayfa kaynağında durur; bunu bilen biri deftere yazabilir. Misafir linkini herkese açık paylaşma.</p></div>';
+
   return h;
 }
 
 function vTeams(){
-  var h='<div class="card"><span class="lbl">Takımlar ('+S.teams.length+')</span><div style="margin-bottom:12px">';
-  S.teams.forEach(function(t){ h+='<span class="tag">'+esc(t)+'</span>'; });
-  h+='</div><p class="note" style="margin:0">2026-27 Süper Lig kadrosu. Sezon içinde değişmez.</p></div>';
-
-  h+='<div class="card"><span class="lbl">Ortak defter</span>';
+  var h='<div class="card"><span class="lbl">Ortak defter</span>';
   if(S.binId){
     h+='<p class="note" style="margin:0 0 10px">Bağlı depo kodu: <b>'+esc(S.binId)+'</b> — bu kodu girenler aynı defteri görür.</p>'
      +'<div class="btnrow"><button class="btn ghost" onclick="refresh()">Şimdi eşitle</button>'
@@ -1891,11 +1867,7 @@ function vTeams(){
    +'<button class="btn ghost" onclick="exportData()">Dışa aktar</button>'
    +'<button class="btn ghost" onclick="document.getElementById(\'impFile\').click()">İçe aktar</button>'
    +'<input type="file" id="impFile" accept=".json" style="display:none" onchange="importData(this)"></div>'
-   +'<p class="note">Dışa aktar tüm veriyi .json olarak indirir. İçe aktar mevcut verinin yerine geçer ve bu ortak defteri beşiniz için birden değiştirir — kullanmadan önce haber ver.</p></div>'
-   +'<div class="card"><span class="lbl">Çakışma</span>'
-   +'<p class="note" style="margin-top:0">Kayıt etmeden önce ortak defter çekilir ve birleştirilir. <b>Farklı maçlar</b> yan yana durur. <b>Aynı maçta</b> iki kişi karar eklediyse ikisi de kalır. Bir karar silinirse mezartaşı düşer, geri gelmez. Skor, hafta ve hakem alanında son kaydeden kazanır. Silinen maç 90 gün mezartaşında tutulur.</p></div>'
-   +'<div class="card"><span class="lbl">Misafir adresi</span>'
-   +'<p class="note" style="margin-top:0">npoint kutu kodu sayfa kaynağında durur; bunu bilen biri deftere yazabilir. Misafir linkini herkese açık paylaşma. Defteri kasten bozmak mümkün — npoint kilidi yok.</p></div>';
+   +'<p class="note">Dışa aktar .json indirir. İçe aktar defterin yerini alır — önce gruba haber ver.</p></div>';
   return h;
 }
 
@@ -2208,25 +2180,32 @@ function render(){
   var body = S.tab==="table"?vTable(): S.tab==="add"?vAdd():
              S.tab==="big4"?vBig4(): S.tab==="matches"?vMatches(): S.tab==="refs"?vRefs():
              S.tab==="method"?vKurallar(): vTeams();
-  var karar=0, maxHafta=0;
+  if(S.tab==="big4"){ S.tab="table"; S.gosterBig4=true; }
+  var karar=0, maxHafta=0, pay=0;
   S.matches.forEach(function(m){
     karar+=(m.decisions||[]).length;
     var w=parseInt(m.week,10); if(isFinite(w)&&w>maxHafta) maxHafta=w;
+    if((m.decisions||[]).length){
+      var im=matchImpact(m);
+      pay+=Math.max(0,im.mid.home)+Math.max(0,im.mid.away);
+    }
   });
   app.innerHTML='<div class="wrap"><header class="head"><svg class="pitch-svg" viewBox="0 0 120 80" fill="none" aria-hidden="true"><rect x="4" y="4" width="112" height="72" rx="2" stroke="currentColor" stroke-width="1.4"/><line x1="60" y1="4" x2="60" y2="76" stroke="currentColor" stroke-width="1.2"/><circle cx="60" cy="40" r="12" stroke="currentColor" stroke-width="1.2"/><rect x="4" y="22" width="18" height="36" stroke="currentColor" stroke-width="1.2"/><rect x="98" y="22" width="18" height="36" stroke="currentColor" stroke-width="1.2"/><rect x="4" y="30" width="8" height="20" stroke="currentColor" stroke-width="1.1"/><rect x="108" y="30" width="8" height="20" stroke="currentColor" stroke-width="1.1"/><circle cx="60" cy="40" r="1.4" fill="currentColor"/></svg>'
    +'<div class="lockup"><svg class="mark" width="52" height="52" viewBox="0 0 32 32" fill="none" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#0B1210"/><rect x="2.5" y="2.5" width="27" height="27" rx="6.5" stroke="#126B45" stroke-width="1" opacity=".55"/><line x1="16" y1="3" x2="16" y2="29" stroke="#126B45" stroke-width=".7" opacity=".45"/><circle cx="16" cy="16" r="4.2" stroke="#126B45" stroke-width=".7" opacity=".45"/><rect x="4.5" y="13.2" width="14.5" height="5.6" rx="1.8" fill="#E8B62C"/><circle cx="20.2" cy="16" r="5.4" fill="#E8B62C"/><rect x="6" y="14.6" width="2.1" height="2.8" rx=".5" fill="#0B1210"/><circle cx="20.6" cy="16" r="1.85" fill="#0B1210"/></svg><div><h1>Düdük <span>Payı.</span></h1>'
    +'<p class="season"><em>2026–27</em> Süper Lig</p></div></div>'
    +'<p class="sub">Hakem kararları düzeltilseydi puan tablosu ne olurdu?</p>'
    +'<div class="kpis"><div class="kpi"><b>'+S.matches.length+'</b><span>maç</span></div>'
-   +'<div class="kpi"><b>'+karar+'</b><span>karar</span></div>'
-   +'<div class="kpi"><b>'+(maxHafta?maxHafta:"—")+'</b><span>hafta</span></div></div>'
+   +'<div class="kpi"><b>'+(maxHafta?maxHafta:"—")+'</b><span>hafta</span></div>'
+   +'<div class="kpi"><b>'+(pay?pay.toFixed(1):"0")+'</b><span>düdük payı</span></div></div>'
    +'<div class="who">'
    +(MISAFIR
       ? '<span class="misafir">Misafir görünümü</span>'
         +'<button class="temabtn" onclick="temaDegis()">'+temaEtiket()+'</button>'
+        +'<button class="temabtn" onclick="go(\'method\')">Kurallar</button>'
       : '<span>Defteri tutan: <b>'+esc(S.me)+'</b></span>'
         +'<button onclick="switchMe()">değiştir</button>'
         +'<button class="temabtn" onclick="temaDegis()">'+temaEtiket()+'</button>'
+        +'<button class="temabtn" onclick="go(\'method\')">Kurallar</button>'
         +'<span class="by">'+(S.sync==="ortak"?'● ortak defter':S.sync==="hata"?'● bağlantı hatası':S.sync==="…"?'●':'● yalnız bu cihaz')+'</span>')
    +'</div></header>'
    +(S.ornek&&!MISAFIR&&!binUrl()?'<div class="warn">Örnek sezon — ortak deftere yazılmaz. Ayarlar’dan npoint kodunu yapıştırınca gerçek deftere geçersin.</div>':'')
@@ -2264,7 +2243,7 @@ function tabOrtala(){
 }
 /* ---- Tema ----
    S.tema: "acik" | "koyu" | null (null = sistem ayarına uy) */
-function temaOku(){ return lsGet("dp-tema")||null; }
+function temaOku(){ return lsGet("dp-tema")||"acik"; }
 function temaUygula(){
   /* Açılış yolunda çalışır; burada bir hata tüm uygulamayı düşürür. */
   try{
@@ -2278,19 +2257,20 @@ function temaUygula(){
   }catch(e){}
 }
 function temaDegis(){
-  /* sıra: sistem -> açık -> koyu -> sistem */
-  S.tema = S.tema===null ? "acik" : S.tema==="acik" ? "koyu" : null;
-  if(S.tema) lsSet("dp-tema",S.tema); else lsDel("dp-tema");
+  /* sıra: açık -> koyu -> açık */
+  S.tema = S.tema==="koyu" ? "acik" : "koyu";
+  lsSet("dp-tema",S.tema);
   temaUygula(); render();
 }
 function temaEtiket(){
-  return S.tema===null ? "Tema: sistem" : S.tema==="acik" ? "Tema: açık" : "Tema: koyu";
+  return S.tema==="koyu" ? "Tema: koyu" : "Tema: açık";
 }
 
 function switchMe(){ S.me=null; render(); }
+function tabloPanel(k){ S[k]=!S[k]; render(); }
 function go(t){
   if(MISAFIR && ["add","teams"].indexOf(t)>=0) return;
-  if(t==="duduk") t="table";
+  if(t==="duduk"||t==="big4") t="table";
   S.tab=t; S.msg=""; render();
 }
 boot();
