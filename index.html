@@ -173,7 +173,7 @@ h1 span{color:var(--amber);font-style:italic;font-weight:500;letter-spacing:-.02
 }
 .tdot i{display:block;}
 .team{display:flex;align-items:center;gap:9px;min-width:0;font-size:15px;font-weight:550;color:var(--ink);}
-.tname{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;}
+.tname{min-width:0;overflow:visible;white-space:normal;line-height:1.2;hyphens:manual;}
 .liga{justify-self:start;min-width:0;}
 .rank{
   width:24px;height:24px;border-radius:50%;
@@ -362,7 +362,7 @@ button.danger{background:none;color:var(--red);box-shadow:0 0 0 1.5px color-mix(
 button.btn:focus-visible{outline:2px solid var(--amber);outline-offset:2px;}
 .btnrow{display:flex;gap:10px;flex-wrap:wrap;}
 
-.thead,.trow{display:grid;grid-template-columns:24px minmax(0,1fr) 32px minmax(44px,1fr) minmax(52px,1fr) minmax(48px,1fr);gap:6px;align-items:center;}
+.thead,.trow{display:grid;grid-template-columns:24px minmax(8.2rem,1fr) 36px 34px 58px 46px;gap:6px;align-items:center;}
 .thead{padding-bottom:10px;border-bottom:1px solid var(--edge);
   font-size:11px;font-weight:650;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);}
 .thead .pts{
@@ -493,8 +493,9 @@ details .note{margin-top:10px;}
   .tab{font-size:12.5px;padding:11px 9px;gap:5px;}
   .tab svg{width:13px;height:13px;}
   .card{padding:16px;}
-  .thead,.trow{grid-template-columns:20px minmax(0,1fr) 28px minmax(40px,1fr) minmax(46px,1fr) minmax(42px,1fr);gap:5px;}
+  .thead,.trow{grid-template-columns:20px minmax(7.2rem,1fr) 34px 32px 52px 42px;gap:5px;}
   .thead .pts{font-size:9.5px;}
+  .tname{font-size:13.5px;}
   .mscore{font-size:20px;}
 }
 @media (prefers-reduced-motion:reduce){
