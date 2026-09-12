@@ -512,7 +512,7 @@ var CREW=["Güven","Ferhat","Musa","Gökhanlort","Coşkun"];
 var BIG4=["Beşiktaş","Fenerbahçe","Galatasaray","Trabzonspor"];
 
 /* ---------------- Model ---------------- */
-var XG_PEN=0.76, XG_GOAL=1.0, RED_BASE=0.65, RED_SUPP=0.35;
+var XG_PEN=0.76, RED_BASE=0.65, RED_SUPP=0.35;
 var TYPES=[
  {id:"pen_not",  label:"Verilmeyen penaltı",            side:"self"},
  {id:"goal_off", label:"Haksız iptal edilen gol",       side:"self"},
@@ -534,23 +534,43 @@ sm(201,2,"Alanyaspor",1,0,"Beşiktaş","Adnan Deniz Kayatepe"),sm(202,2,"Çorum 
 sm(301,3,"Gençlerbirliği",1,1,"Erzurumspor FK","Ümit Öztürk"),sm(302,3,"Gaziantep FK",1,2,"Rizespor","Batuhan Kolak"),sm(303,3,"Eyüpspor",2,1,"Alanyaspor","Cihan Aydın"),sm(304,3,"Galatasaray",3,2,"Göztepe","Mehmet Türkmen"),sm(305,3,"Samsunspor",0,2,"Fenerbahçe","Yasin Kol"),sm(306,3,"Başakşehir",1,1,"Kasımpaşa","Halil Umut Meler"),sm(307,3,"Amedspor",2,1,"Trabzonspor","Atilla Karaoğlan"),sm(308,3,"Beşiktaş",6,2,"Çorum FK","Çağdaş Altay"),sm(309,3,"Konyaspor",1,2,"Kocaelispor","Gürcan Hasova"),
 sm(401,4,"Başakşehir",2,3,"Galatasaray","Kadir Sağlam"),sm(402,4,"Fenerbahçe",1,2,"Beşiktaş","Halil Umut Meler"),sm(403,4,"Erzurumspor FK",1,0,"Konyaspor","Yasin Kol"),sm(404,4,"Çorum FK",3,0,"Eyüpspor","Davut Dakul Çelik"),sm(405,4,"Kasımpaşa",2,2,"Amedspor","Oğuzhan Çakır"),sm(406,4,"Trabzonspor",5,0,"Gençlerbirliği","Çağdaş Altay"),sm(407,4,"Kocaelispor",1,0,"Samsunspor","Reşat Onur Coşkunses")
 ];
-function seedKopya(){return SEED_MATCHES.map(function(m){return {id:m.id,week:m.week,home:m.home,away:m.away,hg:m.hg,ag:m.ag,ref:m.ref,by:m.by,skorOnay:true,decisions:[]};});}
+function seedKopya(){
+  var a=SEED_MATCHES.map(function(m){return {id:m.id,week:m.week,home:m.home,away:m.away,hg:m.hg,ag:m.ag,ref:m.ref,by:m.by,skorOnay:true,decisions:[],upd:0};});
+  function karar(id,type,harmed,minute,certainty){
+    var m=a.filter(function(x){return x.id===id;})[0]; if(!m) return;
+    m.decisions.push({kid:"seed-"+id+"-"+m.decisions.length,type:type,harmed:harmed,minute:minute,certainty:certainty,note:"örnek kayıt",by:"TFF"});
+  }
+  karar(201,"pen_not","away",88,90);           /* Alanya 1-0 BJK — verilmeyen geç penaltı */
+  karar(304,"pen_opp","away",22,80);           /* GS 3-2 Göztepe — erken haksız penaltı (gol) */
+  karar(402,"goal_off","away",74,85);          /* FB 1-2 BJK — iptal edilen BJK golü */
+  return a;
+}
 
 function fact(n){var r=1;for(var i=2;i<=n;i++)r*=i;return r;}
 function pois(k,l){return Math.exp(-l)*Math.pow(l,k)/fact(k);}
-function xPts(lh,la){
-  /* Kesme (12 gol) yüzünden kaybolan olasılık kütlesi tek tarafa yığılmasın:
-     galibiyet, beraberlik ve mağlubiyet ayrı sayılıp toplam 1'e normalize edilir. */
-  var w=0,d=0,l=0;
-  for(var h=0;h<=12;h++)for(var a=0;a<=12;a++){
-    var p=pois(h,lh)*pois(a,la);
-    if(h>a)w+=p; else if(h===a)d+=p; else l+=p;
-  }
-  var t=w+d+l; if(t<=0) return {home:1,away:1};
-  w/=t; d/=t; l/=t;
-  return {home:3*w+d, away:3*l+d};
-}
 function realPts(hg,ag){return hg>ag?[3,0]:(hg<ag?[0,3]:[1,1]);}
+/* Kalan süre: mevcut skora ek gol Poisson'u. Maçı 90 dakika baştan kurmaz. */
+function extraPtsFromXg(gh,ga,dh,da){
+  dh=Math.max(0,dh); da=Math.max(0,da);
+  if(dh<0.001 && da<0.001) return {home:0,away:0};
+  var eh=0, ea=0, mass=0, cap=7;
+  var lh=Math.max(0.001,dh), la=Math.max(0.001,da);
+  for(var h=0;h<=cap;h++) for(var a=0;a<=cap;a++){
+    var p=pois(h,lh)*pois(a,la);
+    mass+=p;
+    var r=realPts(gh+h, ga+a);
+    eh+=p*r[0]; ea+=p*r[1];
+  }
+  if(mass>0){ eh/=mass; ea/=mass; }
+  var b=realPts(gh,ga);
+  return {home:eh-b[0], away:ea-b[1]};
+}
+function kalanPuan(gh,ga,dh,da){
+  var h=dh, a=da;
+  if(h<0 && a>=0){ a+=-h; h=0; }
+  if(a<0 && h>=0){ h+=-a; a=0; }
+  return extraPtsFromXg(gh,ga,Math.max(0,h),Math.max(0,a));
+}
 var _impCache={};
 function impactTemizle(){ _impCache={}; }
 function matchImpact(m){
@@ -600,12 +620,9 @@ function matchImpactHesap(m){
 
     var n=scoreDecs.length, eh=0, ea=0;
     if(n>12){
-      var ph=earlyH+discH, pa=earlyA+discA;
-      var poiFix=xPts(Math.max(0.02,m.hg+ph+rh), Math.max(0.02,m.ag+pa+ra));
-      var poiBase=xPts(Math.max(0.02,m.hg), Math.max(0.02,m.ag));
+      var extra=kalanPuan(m.hg,m.ag,earlyH+discH+rh,earlyA+discA+ra);
       var rb0=realPts(m.hg,m.ag);
-      eh=rb0[0]+(poiFix.home-poiBase.home);
-      ea=rb0[1]+(poiFix.away-poiBase.away);
+      eh=rb0[0]+extra.home; ea=rb0[1]+extra.away;
     } else {
       for(var mask=0; mask<(1<<n); mask++){
         var pr=1, gh=m.hg, ga=m.ag;
@@ -618,12 +635,9 @@ function matchImpactHesap(m){
         gh=Math.max(0,gh); ga=Math.max(0,ga);
         var disk=realPts(gh,ga);
         var pts={home:disk[0], away:disk[1]};
-        /* Erken kalan xG / kırmızı: mevcut skoru silmez, Poisson farkı kadar
-           dokunur. 74′ bir gol 3 puanı 2,2 beklenen puana çevirmez. */
         if(earlyH||earlyA||rh||ra){
-          var poiNow=xPts(Math.max(0.02,gh+earlyH+rh), Math.max(0.02,ga+earlyA+ra));
-          var poi0=xPts(Math.max(0.02,gh), Math.max(0.02,ga));
-          pts={home:disk[0]+(poiNow.home-poi0.home), away:disk[1]+(poiNow.away-poi0.away)};
+          var extra=kalanPuan(gh,ga,earlyH+rh,earlyA+ra);
+          pts={home:disk[0]+extra.home, away:disk[1]+extra.away};
         }
         eh+=pr*pts.home; ea+=pr*pts.away;
       }
@@ -684,7 +698,7 @@ function buildTable(){
 var S={tema:null, me:null, teams:DEFAULT_TEAMS.slice(), matches:[], tab:"table", draft:null, editId:null, acikTakim:null,
        msg:"", binId:"", sync:"yerel", quick:null,
        cekHaftaNo:"", cekBusy:false, cekMsg:"", cekHata:false, hakemSira:"hata",
-       silinen:{}, acikHafta:null, acikHakem:null, ornek:false};
+       silinen:{}, acikHafta:null, acikHakem:null, ornek:false, yerineYaz:false, acikEtkili:false};
 /* Misafir kipi: adres ?misafir ile bitiyorsa uygulama salt okunur açılır.
    Kimlik sorulmaz, yazma yolları kapanır, düzenleme sekmeleri gizlenir. */
 var MISAFIR = /(^|[?&#])misafir(=|&|$)/.test(location.search + location.hash);
@@ -750,14 +764,16 @@ function macTemizle(liste){
        upd: tamSayi(m.upd,0,9e15,0),
        skorOnay: !!m.skorOnay,
        decisions: kararlar.filter(function(d){ return d && gecerliTip[d.type]; })
-        .map(function(d){
-          return { type:d.type,
+        .map(function(d,i){
+          return { kid: d.kid==null||d.kid==="" ? ("e-"+m.id+"-"+i+"-"+d.type+"-"+d.harmed+"-"+tamSayi(d.minute,1,120,45)) : String(d.kid),
+                   type:d.type,
                    harmed: d.harmed==="away"?"away":"home",
                    minute: tamSayi(d.minute,1,120,45),
                    certainty: tamSayi(d.certainty,0,100,80),
                    note: d.note==null?"":String(d.note),
                    by: d.by==null?"":String(d.by) };
-        })
+        }),
+       silinenKarar: (m.silinenKarar && typeof m.silinenKarar==="object") ? m.silinenKarar : {}
      };
    });
 }
@@ -795,17 +811,19 @@ function localLoad(cb){
 
 /* --- Ortak depo: npoint.io --- */
 function binUrl(){ return S.binId?("https://api.npoint.io/"+S.binId):null; }
+function yeniKid(){ return "n"+Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
 function silinenBudan(s){
   var kes=Date.now()-90*864e5, out={};
   Object.keys(s||{}).forEach(function(k){ if((s[k]||0)>=kes) out[k]=s[k]; });
   return out;
 }
-function kararAnahtar(d){ return [d.type, d.harmed, d.minute].join("|"); }
-function kararBirlestir(a,b){
+function kararBirlestir(a,b,silinen){
   var map={};
   function koy(d){
     if(!d||!d.type) return;
-    var k=kararAnahtar(d), cur=map[k];
+    var k=d.kid||(d.type+"|"+d.harmed+"|"+d.minute);
+    if(silinen && silinen[k]) return;
+    var cur=map[k];
     if(!cur || (d.certainty||0)>(cur.certainty||0)) map[k]=d;
   }
   (a||[]).forEach(koy); (b||[]).forEach(koy);
@@ -814,13 +832,15 @@ function kararBirlestir(a,b){
 function macBirlestir(a,b){
   if(!a) return b; if(!b) return a;
   var yeni=(a.upd||0)>=(b.upd||0)?a:b, eski=yeni===a?b:a;
+  var silinenKarar=silinenBudan(Object.assign({}, a.silinenKarar||{}, b.silinenKarar||{}));
   var out={
     id:yeni.id, home:yeni.home, away:yeni.away,
     hg:yeni.hg, ag:yeni.ag, week:yeni.week,
     ref:(yeni.ref&&String(yeni.ref).trim())?yeni.ref:eski.ref,
     by:yeni.by||eski.by, skorOnay:!!(yeni.skorOnay||eski.skorOnay),
     upd:Math.max(a.upd||0,b.upd||0),
-    decisions:kararBirlestir(a.decisions,b.decisions)
+    silinenKarar:silinenKarar,
+    decisions:kararBirlestir(a.decisions,b.decisions,silinenKarar)
   };
   return out;
 }
@@ -864,30 +884,38 @@ function save(){
   if(MISAFIR) return;
   S.ornek=false;
   localSave();
-  if(binUrl()){
-    S.sync="…";
-    fetch(binUrl()).then(function(r){ return r.ok?r.json():null; }).then(function(uzak){
-      if(uzak&&(Array.isArray(uzak.matches)||uzak.silinen)){
-        var onceki=S.matches.length;
-        var m=birlestirDefter({teams:S.teams,matches:S.matches,silinen:S.silinen}, uzak);
-        S.teams=m.teams; S.matches=m.matches; S.silinen=m.silinen;
-        impactTemizle();
-        localSave();
-        if(S.matches.length>onceki) S.msg="Ortak defterde yeni kayıt vardı, birleştirildi.";
-      }
-      remotePush(function(ok){
-        S.sync=ok?"ortak":"hata";
-        if(!ok)S.msg="Ortak depoya yazılamadı — veri bu cihazda duruyor. İnterneti kontrol edip tekrar kaydet.";
-        render();
-      });
-    }).catch(function(){
-      remotePush(function(ok){
-        S.sync=ok?"ortak":"hata";
-        if(!ok)S.msg="Ortak depoya yazılamadı — veri bu cihazda duruyor. İnterneti kontrol edip tekrar kaydet.";
-        render();
-      });
+  if(!binUrl()) return;
+  if(S.yerineYaz){
+    S.yerineYaz=false; S.sync="…";
+    remotePush(function(ok){
+      S.sync=ok?"ortak":"hata";
+      if(!ok)S.msg="Ortak depoya yazılamadı — veri bu cihazda duruyor. İnterneti kontrol edip tekrar kaydet.";
+      render();
     });
+    return;
   }
+  S.sync="…";
+  fetch(binUrl()).then(function(r){ return r.ok?r.json():null; }).then(function(uzak){
+    if(uzak&&(Array.isArray(uzak.matches)||uzak.silinen)){
+      var onceki=S.matches.length;
+      var m=birlestirDefter({teams:S.teams,matches:S.matches,silinen:S.silinen}, uzak);
+      S.teams=m.teams; S.matches=m.matches; S.silinen=m.silinen;
+      impactTemizle();
+      localSave();
+      if(S.matches.length>onceki) S.msg="Ortak defterde yeni kayıt vardı, birleştirildi.";
+    }
+    remotePush(function(ok){
+      S.sync=ok?"ortak":"hata";
+      if(!ok)S.msg="Ortak depoya yazılamadı — veri bu cihazda duruyor. İnterneti kontrol edip tekrar kaydet.";
+      render();
+    });
+  }).catch(function(){
+    remotePush(function(ok){
+      S.sync=ok?"ortak":"hata";
+      if(!ok)S.msg="Ortak depoya yazılamadı — veri bu cihazda duruyor. İnterneti kontrol edip tekrar kaydet.";
+      render();
+    });
+  });
 }
 function boot(){
   S.tema=temaOku();
@@ -933,7 +961,15 @@ function connectBin(){
   .then(function(d){
     S.binId=v; lsSet("dp-bin",v);
     var remoteHas=d&&Array.isArray(d.matches)&&d.matches.length;
-    if(remoteHas){ applyDoc(d); S.ornek=false; localSave(); S.sync="ortak"; S.msg="Bağlandı — ortak defterdeki "+d.matches.length+" maç yüklendi."; render(); }
+    if(remoteHas){
+      if(S.ornek){ applyDoc(d); }
+      else {
+        var m=birlestirDefter({teams:S.teams,matches:S.matches,silinen:S.silinen}, d);
+        S.teams=m.teams; S.matches=m.matches; S.silinen=m.silinen;
+        impactTemizle();
+      }
+      S.ornek=false; localSave(); S.sync="ortak"; S.msg="Bağlandı — ortak defter birleştirildi ("+S.matches.length+" maç)."; render();
+    }
     else { remotePush(function(ok){ S.sync=ok?"ortak":"hata"; S.msg=ok?"Bağlandı — bu cihazdaki veri ortak depoya yazıldı.":"Bağlandı ama yazılamadı."; render(); }); }
   })
   .catch(function(){ S.sync=binUrl()?"hata":"yerel"; S.msg="Depo bulunamadı. Kodu kontrol et — npoint.io adresindeki son bölüm."; render(); });
@@ -1107,8 +1143,13 @@ function enEtkiliKararlar(limit){
 
 function vEtkili(){
   var liste=enEtkiliKararlar(10);
-  if(!liste.length) return '<div class="card"><div class="empty">Henüz skoru değiştiren karar yok.<br>Maç ve karar ekledikçe bu liste dolar.</div></div>';
-  var h='<div class="card"><span class="lbl">Maç skorunu en çok değiştiren kararlar</span>';
+  if(!liste.length) return '';
+  var acik=!!S.acikEtkili;
+  var h='<div class="card"><div class="hafta-bas" role="button" tabindex="0" onclick="S.acikEtkili=!S.acikEtkili;render()">'
+   +'<span class="hafta-ok'+(acik?' acik':'')+'">▾</span>'
+   +'<span class="hafta-ad">Maç skorunu en çok değiştiren 10 karar</span>'
+   +'<span class="hafta-sayi">'+liste.length+'</span></div>';
+  if(!acik) return h+'</div>';
   liste.forEach(function(x,i){
     var d=x.karar;
     h+='<div class="ekar">'
@@ -1128,8 +1169,8 @@ function vEtkili(){
   });
   h+='<p class="note">Sağdaki sayı, o karar hiç yaşanmasaydı iki takım arasında oynayacak <b>toplam puandır</b>. '
    +'Altta mağdurun kazancı ve rakibin kaybı ayrı ayrı yazılıdır. '
-   +'Kararlar birbirini etkilediği için tek tek katkıların toplamı maçın toplam etkisine birebir eşit olmayabilir.</p></div>';
-  h+='<div class="btnrow"><button class="btn ghost" onclick="etkiliKopyala()">Listeyi kopyala</button></div>';
+   +'Kararlar birbirini etkilediği için tek tek katkıların toplamı maçın toplam etkisine birebir eşit olmayabilir.</p>'
+   +'<div class="btnrow"><button class="btn ghost" onclick="etkiliKopyala()">Listeyi kopyala</button></div></div>';
   return h;
 }
 
@@ -1173,8 +1214,8 @@ function takimDetay(ad){
      +'<span class="dwho">'+(x.evde?'':'<span class="vs">@</span>')+tdot(x.rakip)+esc(x.rakip)+' <b class="dskor">'+x.skor+'</b></span>'
      +'<span class="'+(x.etki>=0?'dup':'ddown')+'">'+(etkili?(x.etki>=0?'+':'')+x.etki.toFixed(2):'—')+'</span></div>'
      +'<div class="dmeta">'+(x.hafta?esc(x.hafta)+'. hafta · ':'')+esc(x.hakem||'hakem girilmedi')
-     +(x.bosa>0.05?' · <span style="color:var(--amber)" title="Kazanırken uğradığı, tabloya yansımayan hata">sonuca yansımadı +'+x.bosa.toFixed(2)+'</span>':'')
-     +(x.fazla>0.05?' · <span style="color:var(--red)" title="Kaybederken yararlandığı, tabloya yansımayan hata">sonuca yansımadı −'+x.fazla.toFixed(2)+'</span>':'')
+     +(x.bosa>0.05?' · <span style="color:var(--amber)" title="Kazanırken uğradığı, tabloya yansımayan hata">sonuca yansımadı (~'+x.bosa.toFixed(2)+' gol)</span>':'')
+     +(x.fazla>0.05?' · <span style="color:var(--red)" title="Kaybederken yararlandığı, tabloya yansımayan hata">sonuca yansımadı (−'+x.fazla.toFixed(2)+' gol)</span>':'')
      +'</div>';
     x.kararlar.forEach(function(k){
       h+='<div class="dkarar"><span class="dnokta" style="background:'+(k.lehte?'var(--greenFill)':'var(--redFill)')+'"></span>'+esc(k.metin)+'</div>';
@@ -1267,10 +1308,10 @@ function vDuduk(){
   var T=buildTable();
   var h='';
   h+='<div class="card"><span class="lbl">Kimin aleyhine en fazla hatalı düdük çalındı?</span>'
-   +'<p class="note" style="margin-top:0">Sıra, düzeltilince <b>geri gelecek puanadır</b> (tablodaki yeşil sapma). Karar sayısı ikinci ölçüdür. '
-   +'Kesinliği %75 altı sıralamayı etkilemez; takımın altında “tartışmalı” diye durur.</p>'
-   +'<div class="thead" style="grid-template-columns:1fr 52px 52px 52px"><div>Takım</div><div class="pts">Puan</div><div class="pts">Leh</div><div class="pts">Aleyh</div></div>';
-  T.real.slice().sort(function(a,b){return b.mid-a.mid || b.agC-a.agC || a.forC-b.forC || a.name.localeCompare(b.name,"tr");}).forEach(function(r){
+   +'<p class="note" style="margin-top:0">Sıra ve sapma, kesinliği <b>%75 ve üzeri</b> olan kararların puan etkisidir (tablodaki yeşil/kırmızı farkın kesin dilimi). Karar sayısı ikinci ölçüdür. '
+   +'%75 altı sıralamayı etkilemez; takımın altında “tartışmalı” diye durur.</p>'
+   +'<div class="thead" style="grid-template-columns:1fr 52px 52px 52px"><div>Takım</div><div class="pts">Sapma</div><div class="pts">Leh</div><div class="pts">Aleyh</div></div>';
+  T.real.slice().sort(function(a,b){return b.low-a.low || b.agC-a.agC || a.forC-b.forC || a.name.localeCompare(b.name,"tr");}).forEach(function(r){
     var notlar=[];
     if(r.agT) notlar.push(r.agT+" aleyhte");
     if(r.forT) notlar.push(r.forT+" lehte");
@@ -1278,7 +1319,7 @@ function vDuduk(){
      +'<div class="takimHucre">'+teamCell(r.name)
      +(notlar.length?'<span class="tartisma">tartışmalı: '+notlar.join(" · ")+'</span>':'')
      +'</div>'
-     +'<div class="delta '+(r.mid>=0?'up':'down')+'">'+(r.mid>=0?'+':'')+r.mid.toFixed(1)+'</div>'
+     +'<div class="delta '+(r.low>=0?'up':'down')+'">'+(r.low>=0?'+':'')+r.low.toFixed(1)+'</div>'
      +'<div class="pts" style="color:var(--green)">'+r.forC+'</div>'
      +'<div class="pts" style="color:var(--red)">'+r.agC+'</div></div>';
   });
@@ -1331,8 +1372,8 @@ function vAdd(){
    +'<p class="note" style="margin:0 0 10px;font-size:12.5px">Sol kutu <b>'+esc(d.home)+'</b>, sağ kutu <b>'+esc(d.away)+'</b> golü.</p>'
    +'<div id="goalWarn"></div>'
    +'<div class="row">'
-   +'<input placeholder="Hakem" value="'+esc(d.ref)+'" oninput="setDQ(\'ref\',this.value)">'
-   +'<input placeholder="Hafta" value="'+esc(d.week)+'" oninput="setDQ(\'week\',this.value)"></div>'
+   +'<input id="dref" placeholder="Hakem" value="'+esc(d.ref)+'" oninput="setDQ(\'ref\',this.value)">'
+   +'<input id="dweek" placeholder="Hafta" value="'+esc(d.week)+'" oninput="setDQ(\'week\',this.value)"></div>'
    +(same?'<div class="warn" style="margin-top:10px">Aynı takımı iki tarafa da seçtin.</div>':'')+'</div>';
 
   h+='<div class="card"><span class="lbl">Tartışmalı kararlar</span>'
@@ -1352,7 +1393,7 @@ function vAdd(){
      +'<input type="range" min="10" max="100" step="5" value="'+x.certainty+'"'
      +' oninput="document.getElementById(\'cert'+i+'\').textContent=this.value"'
      +' onchange="setDec('+i+',\'certainty\',+this.value)">'
-     +'<input placeholder="Not (isteğe bağlı)" value="'+esc(x.note)+'" oninput="setDecQ('+i+',\'note\',this.value)" style="margin-top:8px">'
+     +'<input id="dnote'+i+'" placeholder="Not (isteğe bağlı)" value="'+esc(x.note)+'" oninput="setDecQ('+i+',\'note\',this.value)" style="margin-top:8px">'
      +'<button class="btn danger" style="margin-top:9px" onclick="delDec('+i+')">Sil</button></div>';
   });
   h+='</div><div class="btnrow"><button class="btn" style="flex:1;padding:13px"'+(same?' disabled':'')+' onclick="saveMatch()">'
@@ -1367,14 +1408,14 @@ function vMatches(){
   else{
     var seen={}, dupPairs=[];
     S.matches.forEach(function(m){
-      var k=m.home+"|"+m.away;
+      var k=m.home+"|"+m.away+"|"+String(m.week||"");
       if(seen[k]){ if(dupPairs.indexOf(k)<0)dupPairs.push(k); } else seen[k]=1;
     });
     h='<div class="card"><span class="lbl">'+S.matches.length+' maç</span>';
     if(dupPairs.length){
-      h+='<div class="warn">Aynı eşleşme birden fazla kayıtlı: '
-       +dupPairs.map(function(k){return esc(k.replace("|"," — "));}).join(", ")
-       +'. Bu, puan tablosunu bozar — fazlasını sil.</div>';
+      h+='<div class="warn">Aynı haftada aynı eşleşme birden fazla kayıtlı: '
+       +dupPairs.map(function(k){var p=k.split("|"); return esc(p[0])+" — "+esc(p[1])+(p[2]?" ("+esc(p[2])+". hafta)":"");}).join(", ")
+       +'. Fazlasını sil, yoksa o maç iki kez sayılır.</div>';
     }
     /* onaylanmış maçlar bir daha uyarı olarak çıkmaz — averajı bozmuyor, sadece nadir bir skor */
     var odd=S.matches.filter(function(m){return ((m.hg+m.ag)>=7 || m.hg>=6 || m.ag>=6) && !m.skorOnay;});
@@ -1536,7 +1577,7 @@ function vEtkiOzet(){
        +'<span class="ozet-ad">'+esc(r.ad)
        +'<span class="ozet-alt">'+r.mac+' maç · '+r.karar+' karar'
        +(r.etkili?' ('+r.etkili+"'i skoru değiştirdi)":' (hiçbiri skoru değiştirmedi)')
-       +(r.yansimayan>0.05?' · <span style="color:var(--amber)">'+r.yansimayan.toFixed(1)+' sonuca yansımadı</span>':'')
+       +(r.yansimayan>0.05?' · <span style="color:var(--amber)">'+r.yansimayan.toFixed(1)+' gol sonuca yansımadı</span>':'')
        +(enCok&&pay>0.7&&r.karar>=3?'<br><span style="color:var(--red)">kararlarının %'+Math.round(pay*100)+"'i tek takım lehine: "+esc(enCok)+'</span>'
          :(enCok?' · en çok <b>'+esc(enCok)+'</b> lehine':''))
        +'</span></span>'
@@ -1645,7 +1686,7 @@ function vRefs(){
          +'<div class="pts" style="color:var(--green)">'+v.f+'</div>'
          +'<div class="pts" style="color:var(--red)">'+v.a+'</div>'
          +'<div class="delta '+(v.pts>=0?'up':'down')+'">'+(v.pts>=0?'+':'')+v.pts.toFixed(1)
-         +(v.bosa>0.05?'<span class="mv" style="color:var(--amber)" title="puana dönüşemeyen mağduriyet">◦'+v.bosa.toFixed(1)+'</span>':'')
+         +(v.bosa>0.05?'<span class="mv" style="color:var(--amber)" title="puana dönüşemeyen ~gol">◦'+v.bosa.toFixed(1)+' gol</span>':'')
          +'</div></div>';
       });
       h+='</div>';
@@ -1671,7 +1712,7 @@ function vKurallar(){
    +'<p class="note" style="margin-top:0"><b>Tek bir maç katsayısı yok — her karar kendi dakikasıyla bölünür.</b> '
    +'Karar i için <b>geçlik = dakika / 90</b> (0…1). Kesinliği p ise: skor ±1 olma ihtimali <b>p × geçlik</b>, kalan <b>p × (1 − geçlik)</b> Poisson λ\'ya xG olarak eklenir. '
    +'20′ ve 89′ aynı maçtaysa 20′ neredeyse tamamen Poisson, 89′ neredeyse tamamen skor düzeltmesi; biri diğerini “geç” yapmaz. '
-   +'<b>Erken hata maçı silmez:</b> oynanmış 70 dakikanın 3 puanı durur, üzerine xG kadar dokunulur. Geç hata skoru değiştirir. '
+   +'<b>Erken hata maçı silmez:</b> oynanmış skor durur; kalan süreye ek gol Poisson\'u biner (maçı 90 dakika baştan kurmaz). Geç hata skoru değiştirir. '
    +'Eski modelde wDisc = max(dakika)/90 idi ve bütün maç tek kolda harmanlanırdı — o kalktı.</p>'
    +'<p class="note"><b>Sonucu bilinen olaylar tam gol sayılır.</b> Golle biten yanlış penaltı ya da sayılan ofsaytlı gol geri alınırken 1 tam gol düşülür.</p>'
    +'<p class="note"><b>Kaçan yanlış penaltı etkisi sıfırdır.</b> “Rakibe yanlış verilen penaltı (gol oldu)” yalnız top filelere gittiyse seçilir. Kurtarıldıysa / dışarı gittiyse bu türe yazılmaz, ayrı katsayı da yoktur — kayda geçmez.</p>'
@@ -1725,7 +1766,9 @@ function vTeams(){
    +'<input type="file" id="impFile" accept=".json" style="display:none" onchange="importData(this)"></div>'
    +'<p class="note">Dışa aktar tüm veriyi .json olarak indirir. İçe aktar mevcut verinin yerine geçer ve bu ortak defteri beşiniz için birden değiştirir — kullanmadan önce haber ver.</p></div>'
    +'<div class="card"><span class="lbl">Çakışma</span>'
-   +'<p class="note" style="margin-top:0">Kayıt etmeden önce ortak defter çekilir ve birleştirilir. <b>Farklı maçlar</b> yan yana durur. <b>Aynı maçta</b> iki kişi karar eklediyse ikisi de kalır (tür + mağdur + dakika aynıysa yüksek kesinlikli olan durur). Skor, hafta ve hakem alanında son kaydeden kazanır. Silinen maç 90 gün mezartaşında tutulur, sonra düşer.</p></div>';
+   +'<p class="note" style="margin-top:0">Kayıt etmeden önce ortak defter çekilir ve birleştirilir. <b>Farklı maçlar</b> yan yana durur. <b>Aynı maçta</b> iki kişi karar eklediyse ikisi de kalır. Bir karar silinirse mezartaşı düşer, geri gelmez. Skor, hafta ve hakem alanında son kaydeden kazanır. Silinen maç 90 gün mezartaşında tutulur.</p></div>'
+   +'<div class="card"><span class="lbl">Misafir adresi</span>'
+   +'<p class="note" style="margin-top:0">npoint kutu kodu sayfa kaynağında durur; bunu bilen biri deftere yazabilir. Misafir linkini herkese açık paylaşma. Defteri kasten bozmak mümkün — npoint kilidi yok.</p></div>';
   return h;
 }
 
@@ -1756,9 +1799,11 @@ function quickPanel(m){
   } else if(!q.minute){
     h+='<p class="qstep">Kaçıncı dakikada?</p>'
      +'<div class="qmin">'
-     +[10,25,45,60,75,85].map(function(x){
+     +[10,25,45,60,75,85,90].map(function(x){
         return '<button class="qbtn" onclick="quickSet(\'minute\','+x+')">'+x+"′</button>";
        }).join('')
+     +'<button class="qbtn" onclick="quickSet(\'minute\',93)">90+3</button>'
+     +'<button class="qbtn" onclick="quickSet(\'minute\',97)">90+7</button>'
      +'</div>'
      +'<div class="qelle">'
      +'<input id="qdk" type="number" inputmode="numeric" min="1" max="120" placeholder="ya da yaz (1-120)">'
@@ -1792,7 +1837,7 @@ function quickCommit(){
   if(!m){ S.quick=null; render(); return; }
   if(!m.decisions) m.decisions=[];
   var nt=document.getElementById("qnot");
-  m.decisions.push({type:q.type,harmed:q.harmed,minute:q.minute||45,certainty:q.certainty,
+  m.decisions.push({kid:yeniKid(),type:q.type,harmed:q.harmed,minute:q.minute||45,certainty:q.certainty,
                     note:(nt&&nt.value||"").slice(0,120),by:S.me});
   m.upd=Date.now();
   S.quick=null; save(); render();
@@ -1811,7 +1856,7 @@ function setGoal(k,el){
     ? '<div class="warn" style="margin:0 0 10px">'+hg+'-'+ag+' girdin \u2014 emin misin? Bu skor Süper Lig\'de çok nadirdir.</div>' : "";
 }
 function addDec(){
-  if(MISAFIR) return; S.draft.decs.push({type:"pen_not",harmed:"home",minute:45,certainty:80,note:"",by:S.me}); render(); }
+  if(MISAFIR) return; S.draft.decs.push({kid:yeniKid(),type:"pen_not",harmed:"home",minute:45,certainty:80,note:"",by:S.me}); render(); }
 function setDec(i,k,v){
   if(MISAFIR) return; S.draft.decs[i][k]=v; S.draft.decs[i].by=S.me; render(); }
 function setDecQ(i,k,v){ S.draft.decs[i][k]=v; S.draft.decs[i].by=S.me; }
@@ -1835,15 +1880,33 @@ function saveMatch(){
     if(!confirm(d.home+" — "+d.away+(d.week?" ("+d.week+". hafta)":"")+" zaten kayıtlı:\n"+lst+"\n\nYine de ikinci kez eklensin mi? Eklenirse tabloda iki maç olarak sayılır."))return;
   }
   var rec={id:S.editId||Date.now(),week:(d.week||"").trim(),home:d.home,away:d.away,
-    hg:+d.hg||0,ag:+d.ag||0,ref:(d.ref||"").trim(),decisions:d.decs.slice(),by:S.me,upd:Date.now()};
-  if(S.editId){ S.matches=S.matches.map(function(m){return m.id===S.editId?rec:m;}); }
+    hg:+d.hg||0,ag:+d.ag||0,ref:(d.ref||"").trim(),
+    decisions:(d.decs||[]).map(function(x){
+      var k=Object.assign({}, x);
+      if(!k.kid) k.kid=yeniKid();
+      return k;
+    }),
+    by:S.me, upd:Date.now(), skorOnay:!!d.skorOnay, silinenKarar:Object.assign({}, d.silinenKarar||{})};
+  if(S.editId){
+    var eski=S.matches.filter(function(x){return x.id===S.editId;})[0];
+    if(eski){
+      rec.skorOnay = !!(d.skorOnay || eski.skorOnay);
+      rec.silinenKarar=Object.assign({}, eski.silinenKarar||{});
+      var yeniKids={};
+      rec.decisions.forEach(function(x){ if(x.kid) yeniKids[x.kid]=1; });
+      (eski.decisions||[]).forEach(function(x){
+        if(x.kid && !yeniKids[x.kid]) rec.silinenKarar[x.kid]=Date.now();
+      });
+    }
+    S.matches=S.matches.map(function(m){return m.id===S.editId?rec:m;});
+  }
   else{ S.matches.push(rec); }
   S.draft=null; S.editId=null; S.tab="matches"; save(); render();
 }
 function editMatch(id){
   var m=S.matches.filter(function(x){return x.id===id;})[0]; if(!m)return;
-  S.draft={home:m.home,away:m.away,hg:m.hg,ag:m.ag,ref:m.ref,week:m.week,
-    decs:(m.decisions||[]).map(function(d){return {type:d.type,harmed:d.harmed,minute:d.minute,certainty:d.certainty,note:d.note||"",by:d.by};})};
+  S.draft={home:m.home,away:m.away,hg:m.hg,ag:m.ag,ref:m.ref,week:m.week,skorOnay:!!m.skorOnay,silinenKarar:m.silinenKarar||{},
+    decs:(m.decisions||[]).map(function(d){return {kid:d.kid,type:d.type,harmed:d.harmed,minute:d.minute,certainty:d.certainty,note:d.note||"",by:d.by};})};
   S.editId=id; S.tab="add"; render();
 }
 function cancelEdit(){ S.draft=null; S.editId=null; S.tab="matches"; render(); }
@@ -1879,7 +1942,11 @@ function importData(inp){
       var d=JSON.parse(rd.result);
       if(!d||!Array.isArray(d.matches)||!Array.isArray(d.teams)) throw 0;
       if(!confirm("İçe aktarma ortak defterdeki "+S.matches.length+" maçın yerine geçecek ve beşinizi birden etkiler. Devam?")){inp.value="";return;}
-      S.teams=d.teams; S.matches=macTemizle(d.matches); S.silinen=d.silinen||{}; S.ornek=false; impactTemizle(); save(); render();
+      var eskiIds={}; (S.matches||[]).forEach(function(m){ eskiIds[String(m.id)]=1; });
+      S.teams=d.teams; S.matches=macTemizle(d.matches); S.silinen=d.silinen||{}; S.ornek=false; impactTemizle();
+      S.matches.forEach(function(m){ delete eskiIds[String(m.id)]; });
+      Object.keys(eskiIds).forEach(function(id){ S.silinen[id]=Date.now(); });
+      S.yerineYaz=true; save(); render();
     }catch(e){ S.msg="Dosya okunamadı — geçerli bir Düdük Payı yedeği değil."; render(); }
     inp.value="";
   };
@@ -1904,40 +1971,44 @@ function internettenCek(){
   if(!isFinite(hafta)||hafta<1||hafta>34){ S.cekMsg="Hafta numarası 1 ile 34 arasında olmalı."; S.cekHata=true; render(); return; }
   S.cekHaftaNo=String(hafta); S.cekBusy=true; S.cekMsg=""; S.cekHata=false; render();
 
-  var url="https://www.thesportsdb.com/api/v1/json/123/eventsround.php?id=4339&r="+hafta+"&s=2026-2027";
-  fetch(url).then(function(r){
-    if(!r.ok) throw new Error("sunucu "+r.status+" döndü");
-    return r.json();
-  }).then(function(data){
-    S.cekBusy=false;
-    var olaylar=(data&&data.events)||[];
-    if(!olaylar.length){ S.cekMsg="Bu haftada veri bulunamadı. Hafta henüz oynanmamış ya da kaynak bu ligi desteklemiyor olabilir."; S.cekHata=true; render(); return; }
-
-    var satirlar=[], eslesmeyen=[], skorsuz=0;
-    olaylar.forEach(function(e){
-      var hg=e.intHomeScore, ag=e.intAwayScore;
-      if(hg===null||hg===undefined||ag===null||ag===undefined||hg===""||ag===""){ skorsuz++; return; }
-      var H=nearestTeam(e.strHomeTeam), A=nearestTeam(e.strAwayTeam);
-      if(!H||!A){ eslesmeyen.push((H?"":e.strHomeTeam+" ")+(A?"":e.strAwayTeam)); return; }
-      satirlar.push({home:H,away:A,hg:parseInt(hg,10)||0,ag:parseInt(ag,10)||0,ref:"",week:String(hafta)});
-    });
-
-    var kutu=document.getElementById("pasteIn");
-    if(kutu) kutu.value = satirlar.length ? JSON.stringify(satirlar,null,1) : "";
-
-    var parts=[];
-    if(satirlar.length) parts.push(satirlar.length+" maç bulundu, hakem alanlarını doldurup \"Maçları ekle\"ye basmadan önce gözden geçir");
-    if(skorsuz) parts.push(skorsuz+" maç henüz oynanmamış");
-    if(eslesmeyen.length) parts.push("tanınmayan takım: "+eslesmeyen.join(", "));
-    S.cekMsg = parts.length ? parts.join(". ")+"." : "Bu haftadan kullanılabilir maç çıkmadı.";
-    S.cekHata = !satirlar.length;
-    render();
-  }).catch(function(err){
-    S.cekBusy=false;
-    S.cekMsg="Çekilemedi ("+(err&&err.message||"ağ hatası")+"). Kaynağa bu cihazdan ulaşılamıyor olabilir; her zamanki gibi arayıp elle yapıştırabilirsin.";
-    S.cekHata=true;
-    render();
-  });
+  var denemeler=[
+    "https://www.thesportsdb.com/api/v1/json/123/eventsround.php?id=4339&r="+hafta+"&s=2026-2027",
+    "https://www.thesportsdb.com/api/v1/json/123/eventsround.php?id=4339&r="+hafta+"&s=2025-2026",
+    "https://www.thesportsdb.com/api/v1/json/123/eventsround.php?id=4339&r="+hafta
+  ];
+  function dene(i){
+    if(i>=denemeler.length){
+      S.cekBusy=false;
+      S.cekMsg="Çekilemedi. Kaynak bu lig/sezon için boş döndü ya da bu cihazdan ulaşılamıyor; haftayı elle yapıştırabilirsin.";
+      S.cekHata=true; render(); return;
+    }
+    fetch(denemeler[i]).then(function(r){
+      if(!r.ok) throw new Error("sunucu "+r.status+" döndü");
+      return r.json();
+    }).then(function(data){
+      var olaylar=(data&&data.events)||[];
+      if(!olaylar.length){ dene(i+1); return; }
+      S.cekBusy=false;
+      var satirlar=[], eslesmeyen=[], skorsuz=0;
+      olaylar.forEach(function(e){
+        var hg=e.intHomeScore, ag=e.intAwayScore;
+        if(hg===null||hg===undefined||ag===null||ag===undefined||hg===""||ag===""){ skorsuz++; return; }
+        var H=nearestTeam(e.strHomeTeam), A=nearestTeam(e.strAwayTeam);
+        if(!H||!A){ eslesmeyen.push((H?"":e.strHomeTeam+" ")+(A?"":e.strAwayTeam)); return; }
+        satirlar.push({home:H,away:A,hg:parseInt(hg,10)||0,ag:parseInt(ag,10)||0,ref:"",week:String(hafta)});
+      });
+      var kutu=document.getElementById("pasteIn");
+      if(kutu) kutu.value = satirlar.length ? JSON.stringify(satirlar,null,1) : "";
+      var parts=[];
+      if(satirlar.length) parts.push(satirlar.length+" maç bulundu, hakem alanlarını doldurup \"Maçları ekle\"ye basmadan önce gözden geçir");
+      if(skorsuz) parts.push(skorsuz+" maç henüz oynanmamış");
+      if(eslesmeyen.length) parts.push("tanınmayan takım: "+eslesmeyen.join(", "));
+      S.cekMsg = parts.length ? parts.join(". ")+"." : "Bu haftadan kullanılabilir maç çıkmadı.";
+      S.cekHata = !satirlar.length;
+      render();
+    }).catch(function(){ dene(i+1); });
+  }
+  dene(0);
 }
 
 function nearestTeam(name){
@@ -1951,8 +2022,9 @@ function nearestTeam(name){
   return null;
 }
 function isDup(home,away,week){
+  var w=String(week||"").trim();
   return S.matches.some(function(m){
-    return m.home===home && m.away===away && (!week || String(m.week)===String(week));
+    return m.home===home && m.away===away && String(m.week||"").trim()===w;
   });
 }
 function pasteWeek(){
@@ -1992,6 +2064,9 @@ function render(){
   var y=window.scrollY||0;
   var tabEl=document.getElementById("tabs");
   var tabX=tabEl?tabEl.scrollLeft:0;
+  var ae=document.activeElement;
+  var fid=ae&&ae.id;
+  var fpos=(ae && typeof ae.selectionStart==="number")?ae.selectionStart:null;
   var app=document.getElementById("app");
   if(!S.me && !MISAFIR){ app.innerHTML=vGate(); return; }
   if(MISAFIR && ["add","teams"].indexOf(S.tab)>=0) S.tab="table";
@@ -2024,6 +2099,10 @@ function render(){
   tabGolge(); tabOrtala();
   var n2=document.getElementById("tabs"); if(n2) n2.scrollLeft=tabX;
   window.scrollTo(0,y);
+  if(fid){
+    var el=document.getElementById(fid);
+    if(el){ el.focus(); if(fpos!=null && el.setSelectionRange) try{ el.setSelectionRange(fpos,fpos); }catch(e){} }
+  }
 }
 function tabGolge(){
   var n=document.getElementById("tabs"), w=document.getElementById("tabwrap");
