@@ -763,16 +763,22 @@ function macTemizle(liste){
        by: m.by==null?"":String(m.by),
        upd: tamSayi(m.upd,0,9e15,0),
        skorOnay: !!m.skorOnay,
-       decisions: kararlar.filter(function(d){ return d && gecerliTip[d.type]; })
-        .map(function(d,i){
-          return { kid: d.kid==null||d.kid==="" ? ("e-"+m.id+"-"+i+"-"+d.type+"-"+d.harmed+"-"+tamSayi(d.minute,1,120,45)) : String(d.kid),
+       decisions: kararTekille(
+         kararlar.filter(function(d){
+           if(!d || !gecerliTip[d.type]) return false;
+           if(S.ornek) return true;
+           if(String(d.kid||"").indexOf("seed-")===0) return false;
+           if(d.note==="örnek kayıt") return false;
+           return true;
+         }).map(function(d,i){
+          return { kid: d.kid==null||d.kid==="" ? ("e-"+m.id+"-"+kararParmak(d)) : String(d.kid),
                    type:d.type,
                    harmed: d.harmed==="away"?"away":"home",
                    minute: tamSayi(d.minute,1,120,45),
                    certainty: tamSayi(d.certainty,0,100,80),
                    note: d.note==null?"":String(d.note),
                    by: d.by==null?"":String(d.by) };
-        }),
+        }), m.silinenKarar),
        silinenKarar: (m.silinenKarar && typeof m.silinenKarar==="object") ? m.silinenKarar : {}
      };
    });
@@ -812,22 +818,33 @@ function localLoad(cb){
 /* --- Ortak depo: npoint.io --- */
 function binUrl(){ return S.binId?("https://api.npoint.io/"+S.binId):null; }
 function yeniKid(){ return "n"+Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
+function kararParmak(d){
+  return [d.type, d.harmed==="away"?"away":"home", tamSayi(d.minute,1,120,45)].join("|");
+}
+function kararTekille(liste, silinen){
+  var map={};
+  (liste||[]).forEach(function(d){
+    if(!d||!d.type) return;
+    if(d.kid && silinen && silinen[String(d.kid)]) return;
+    var p=kararParmak(d);
+    if(silinen && silinen[p]) return;
+    var cur=map[p];
+    if(!cur){ map[p]=d; return; }
+    if((d.certainty||0)>(cur.certainty||0)) map[p]=d;
+    else if((d.certainty||0)===(cur.certainty||0) && d.kid && String(d.kid).charAt(0)==="n" && String(cur.kid||"").charAt(0)!=="n") map[p]=d;
+  });
+  return Object.keys(map).map(function(k){return map[k];});
+}
+function kararSay(ms){
+  var n=0; (ms||[]).forEach(function(m){ n+=(m.decisions||[]).length; }); return n;
+}
 function silinenBudan(s){
   var kes=Date.now()-90*864e5, out={};
   Object.keys(s||{}).forEach(function(k){ if((s[k]||0)>=kes) out[k]=s[k]; });
   return out;
 }
 function kararBirlestir(a,b,silinen){
-  var map={};
-  function koy(d){
-    if(!d||!d.type) return;
-    var k=d.kid||(d.type+"|"+d.harmed+"|"+d.minute);
-    if(silinen && silinen[k]) return;
-    var cur=map[k];
-    if(!cur || (d.certainty||0)>(cur.certainty||0)) map[k]=d;
-  }
-  (a||[]).forEach(koy); (b||[]).forEach(koy);
-  return Object.keys(map).map(function(k){return map[k];});
+  return kararTekille([].concat(a||[], b||[]), silinen);
 }
 function macBirlestir(a,b){
   if(!a) return b; if(!b) return a;
@@ -871,9 +888,14 @@ function remotePull(cb){
   fetch(binUrl()).then(function(r){return r.ok?r.json():null;})
   .then(function(d){
     if(d){
+      var once=kararSay((d.matches)||[]);
       var m=birlestirDefter({teams:S.teams,matches:S.matches,silinen:S.silinen}, d);
       S.teams=m.teams; S.matches=m.matches; S.silinen=m.silinen;
       impactTemizle(); localSave();
+      if(kararSay(S.matches)<once && !MISAFIR){
+        remotePush(function(){ if(cb)cb(true); });
+        return;
+      }
     }
     if(cb)cb(!!d);
   })
