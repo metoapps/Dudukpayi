@@ -362,9 +362,13 @@ button.danger{background:none;color:var(--red);box-shadow:0 0 0 1.5px color-mix(
 button.btn:focus-visible{outline:2px solid var(--amber);outline-offset:2px;}
 .btnrow{display:flex;gap:10px;flex-wrap:wrap;}
 
-.thead,.trow{display:grid;grid-template-columns:26px minmax(0,1fr) 36px 40px 48px 46px;gap:5px;align-items:center;}
+.thead,.trow{display:grid;grid-template-columns:24px minmax(0,1fr) 32px minmax(44px,1fr) minmax(52px,1fr) minmax(48px,1fr);gap:6px;align-items:center;}
 .thead{padding-bottom:10px;border-bottom:1px solid var(--edge);
-  font-size:11px;font-weight:650;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);}
+  font-size:11px;font-weight:650;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);}
+.thead .pts{
+  letter-spacing:0;text-transform:none;font-size:10px;font-weight:650;
+  color:var(--muted);white-space:nowrap;
+}
 .trow{padding:11px 0;border-bottom:1px solid var(--edge2);}
 .trow:last-of-type{border-bottom:0;}
 .pos{font-family:var(--font-num);font-variant-numeric:tabular-nums;font-size:13px;color:var(--dim);text-align:right;}
@@ -489,7 +493,8 @@ details .note{margin-top:10px;}
   .tab{font-size:12.5px;padding:11px 9px;gap:5px;}
   .tab svg{width:13px;height:13px;}
   .card{padding:16px;}
-  .thead,.trow{grid-template-columns:22px minmax(0,1fr) 30px 34px 40px 38px;gap:4px;}
+  .thead,.trow{grid-template-columns:20px minmax(0,1fr) 28px minmax(40px,1fr) minmax(46px,1fr) minmax(42px,1fr);gap:5px;}
+  .thead .pts{font-size:9.5px;}
   .mscore{font-size:20px;}
 }
 @media (prefers-reduced-motion:reduce){
