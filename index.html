@@ -684,10 +684,11 @@ var MISAFIR = /(^|[?&#])misafir(=|&|$)/.test(location.search + location.hash);
 var MISAFIR_BIN = "7e5bcb28b0d4471ca91a";
 
 var TABS=MISAFIR
- ?[["table","Tablo"],["big4","Dört Büyük"],["matches","Maçlar"],["refs","Hakemler"],["method","Kurallar"]]
- :[["table","Tablo"],["big4","Dört Büyük"],["add","Maç ekle"],["matches","Maçlar"],
+ ?[["table","Tablo"],["duduk","Hatalı Düdük"],["big4","Dört Büyük"],["matches","Maçlar"],["refs","Hakemler"],["method","Kurallar"]]
+ :[["table","Tablo"],["duduk","Hatalı Düdük"],["big4","Dört Büyük"],["add","Maç ekle"],["matches","Maçlar"],
           ["refs","Hakemler"],["teams","Ayarlar"],["method","Kurallar"]];
 var ICO={
+  duduk:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" aria-hidden="true"><path d="M3 10h9l4-3v10l-4-3H3z"/><path d="M19 9a5 5 0 0 1 0 6"/></svg>',
   table:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>',
   big4:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>',
   add:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>',
@@ -1160,9 +1161,15 @@ function vTable(){
      +'<div class="pts" style="color:var(--amber)">'+r.pts+'</div></div>';
   });
   h+='</div>';
-  h+='<p class="note">A:Y = attığı ve yediği gol. Averaj bu iki sayının farkıdır ve <b>yalnızca girilen skorlardan</b> gelir — hakem kararları bu tabloyu hiç etkilemez.</p></div>';
+  h+='<p class="note">A:Y = attığı ve yediği gol. Averaj bu iki sayının farkıdır ve <b>yalnızca girilen skorlardan</b> gelir — hakem kararları bu tabloyu hiç etkilemez.</p>';
+  return h;
+}
 
-  h+='<div class="card"><span class="lbl">Kimin aleyhine karar çıktı</span>'
+function vDuduk(){
+  if(!S.matches.length) return emptyPitch('Henüz maç yok. Maç ve karar girildikçe bu tablo dolar.');
+  var T=buildTable();
+  var h='';
+  h+='<div class="card"><span class="lbl">Kimin aleyhine en fazla hatalı düdük çalındı?</span>'
    +'<p class="note" style="margin-top:0">Sıralama, kesinliği <b>%75 ve üzeri</b> olan kararlara göre. En çok mağdur olan takım en üstte. '
    +'Daha düşük kesinlikli kararlar sıralamayı etkilemez, ama yok da sayılmaz: takımın altında ayrıca belirtilir.</p>'
    +'<div class="thead" style="grid-template-columns:1fr 62px 62px"><div>Takım</div><div class="pts">Lehte</div><div class="pts">Aleyhte</div></div>';
@@ -1180,6 +1187,7 @@ function vTable(){
      +'<div class="pts" style="color:var(--green)">'+r.forC+'</div>'
      +'<div class="pts" style="color:var(--red)">'+r.agC+'</div></div>';
   });
+  h+='</div>';
   return h;
 }
 
@@ -1866,7 +1874,7 @@ function render(){
   var app=document.getElementById("app");
   if(!S.me && !MISAFIR){ app.innerHTML=vGate(); return; }
   if(MISAFIR && ["add","teams"].indexOf(S.tab)>=0) S.tab="table";
-  var body = S.tab==="table"?vTable(): S.tab==="add"?vAdd():
+  var body = S.tab==="table"?vTable(): S.tab==="duduk"?vDuduk(): S.tab==="add"?vAdd():
              S.tab==="big4"?vBig4(): S.tab==="matches"?vMatches(): S.tab==="refs"?vRefs():
              S.tab==="method"?vKurallar(): vTeams();
   var karar=0; S.matches.forEach(function(m){ karar+=(m.decisions||[]).length; });
