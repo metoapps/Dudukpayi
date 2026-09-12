@@ -600,13 +600,12 @@ function matchImpactHesap(m){
 
     var n=scoreDecs.length, eh=0, ea=0;
     if(n>12){
-      var ph=earlyH, pa=earlyA;
-      scoreDecs.forEach(function(d){
-        var g=goalShift(d), p=prob(d,wOf(d))*lateOf(d);
-        ph+=g[0]*p; pa+=g[1]*p;
-      });
-      var poi=xPts(Math.max(0.02,m.hg+ph+rh), Math.max(0.02,m.ag+pa+ra));
-      eh=poi.home; ea=poi.away;
+      var ph=earlyH+discH, pa=earlyA+discA;
+      var poiFix=xPts(Math.max(0.02,m.hg+ph+rh), Math.max(0.02,m.ag+pa+ra));
+      var poiBase=xPts(Math.max(0.02,m.hg), Math.max(0.02,m.ag));
+      var rb0=realPts(m.hg,m.ag);
+      eh=rb0[0]+(poiFix.home-poiBase.home);
+      ea=rb0[1]+(poiFix.away-poiBase.away);
     } else {
       for(var mask=0; mask<(1<<n); mask++){
         var pr=1, gh=m.hg, ga=m.ag;
@@ -617,11 +616,14 @@ function matchImpactHesap(m){
         }
         if(pr<=0) continue;
         gh=Math.max(0,gh); ga=Math.max(0,ga);
-        var pts;
+        var disk=realPts(gh,ga);
+        var pts={home:disk[0], away:disk[1]};
+        /* Erken kalan xG / kırmızı: mevcut skoru silmez, Poisson farkı kadar
+           dokunur. 74′ bir gol 3 puanı 2,2 beklenen puana çevirmez. */
         if(earlyH||earlyA||rh||ra){
-          pts=xPts(Math.max(0.02,gh+earlyH+rh), Math.max(0.02,ga+earlyA+ra));
-        } else {
-          var r=realPts(gh,ga); pts={home:r[0],away:r[1]};
+          var poiNow=xPts(Math.max(0.02,gh+earlyH+rh), Math.max(0.02,ga+earlyA+ra));
+          var poi0=xPts(Math.max(0.02,gh), Math.max(0.02,ga));
+          pts={home:disk[0]+(poiNow.home-poi0.home), away:disk[1]+(poiNow.away-poi0.away)};
         }
         eh+=pr*pts.home; ea+=pr*pts.away;
       }
@@ -1669,6 +1671,7 @@ function vKurallar(){
    +'<p class="note" style="margin-top:0"><b>Tek bir maç katsayısı yok — her karar kendi dakikasıyla bölünür.</b> '
    +'Karar i için <b>geçlik = dakika / 90</b> (0…1). Kesinliği p ise: skor ±1 olma ihtimali <b>p × geçlik</b>, kalan <b>p × (1 − geçlik)</b> Poisson λ\'ya xG olarak eklenir. '
    +'20′ ve 89′ aynı maçtaysa 20′ neredeyse tamamen Poisson, 89′ neredeyse tamamen skor düzeltmesi; biri diğerini “geç” yapmaz. '
+   +'<b>Erken hata maçı silmez:</b> oynanmış 70 dakikanın 3 puanı durur, üzerine xG kadar dokunulur. Geç hata skoru değiştirir. '
    +'Eski modelde wDisc = max(dakika)/90 idi ve bütün maç tek kolda harmanlanırdı — o kalktı.</p>'
    +'<p class="note"><b>Sonucu bilinen olaylar tam gol sayılır.</b> Golle biten yanlış penaltı ya da sayılan ofsaytlı gol geri alınırken 1 tam gol düşülür.</p>'
    +'<p class="note"><b>Kaçan yanlış penaltı etkisi sıfırdır.</b> “Rakibe yanlış verilen penaltı (gol oldu)” yalnız top filelere gittiyse seçilir. Kurtarıldıysa / dışarı gittiyse bu türe yazılmaz, ayrı katsayı da yoktur — kayda geçmez.</p>'
