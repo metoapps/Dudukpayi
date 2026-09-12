@@ -1163,19 +1163,19 @@ function vTable(){
   h+='<p class="note">A:Y = attığı ve yediği gol. Averaj bu iki sayının farkıdır ve <b>yalnızca girilen skorlardan</b> gelir — hakem kararları bu tabloyu hiç etkilemez.</p></div>';
 
   h+='<div class="card"><span class="lbl">Kimin aleyhine karar çıktı</span>'
-   +'<p class="note" style="margin-top:0">Sıralama <b>%75 ve üzeri kesinlikte</b> girilen net kararlara göre — en çok aleyhine karar çıkan üstte. '
-   +'Daha düşük kesinlikli kararlar sıralamaya karışmaz, takımın altında <i>tartışmalı</i> notuyla ayrıca yazılır.</p>'
-   +'<div class="thead" style="grid-template-columns:1fr 56px 56px"><div>Takım</div><div class="pts">Kazandığı</div><div class="pts">Kaybettiği</div></div>';
+   +'<p class="note" style="margin-top:0">Sıralama, kesinliği <b>%75 ve üzeri</b> olan kararlara göre. En çok mağdur olan takım en üstte. '
+   +'Daha düşük kesinlikli kararlar sıralamayı etkilemez, ama yok da sayılmaz: takımın altında ayrıca belirtilir.</p>'
+   +'<div class="thead" style="grid-template-columns:1fr 62px 62px"><div>Takım</div><div class="pts">Lehte</div><div class="pts">Aleyhte</div></div>';
   T.real.slice().sort(function(a,b){return b.agC-a.agC || a.forC-b.forC || a.name.localeCompare(b.name,"tr");}).forEach(function(r){
     var notlar=[];
-    if(r.agT) notlar.push(r.agT+" aleyhine");
-    if(r.forT) notlar.push(r.forT+" lehine");
+    if(r.agT) notlar.push(r.agT+" aleyhte");
+    if(r.forT) notlar.push(r.forT+" lehte");
     /* teamCell kendi <div class="team"> kutusunu döndürür; notu onun
        yanına değil, kapanışından önce eklemek yerine ayrı bir sarmalayıcı
        kullanıyoruz — teamCell'in iç yapısına hiç dokunmadan. */
-    h+='<div class="trow" style="grid-template-columns:1fr 56px 56px">'
+    h+='<div class="trow" style="grid-template-columns:1fr 62px 62px">'
      +'<div class="takimHucre">'+teamCell(r.name)
-     +(notlar.length?'<span class="tartisma">ayrıca tartışmalı: '+notlar.join(" · ")+'</span>':'')
+     +(notlar.length?'<span class="tartisma">tartışmalı: '+notlar.join(" · ")+'</span>':'')
      +'</div>'
      +'<div class="pts" style="color:var(--green)">'+r.forC+'</div>'
      +'<div class="pts" style="color:var(--red)">'+r.agC+'</div></div>';
