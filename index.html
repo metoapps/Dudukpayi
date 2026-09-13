@@ -362,7 +362,7 @@ button.danger{background:none;color:var(--red);box-shadow:0 0 0 1.5px color-mix(
 button.btn:focus-visible{outline:2px solid var(--amber);outline-offset:2px;}
 .btnrow{display:flex;gap:10px;flex-wrap:wrap;}
 
-.thead,.trow{display:grid;grid-template-columns:24px minmax(9rem,1fr) 36px 58px 48px;gap:8px;align-items:center;}
+.thead,.trow{display:grid;grid-template-columns:24px minmax(9rem,1fr) 72px 52px;gap:8px;align-items:center;}
 .thead{padding-bottom:10px;border-bottom:1px solid var(--edge);
   font-size:11px;font-weight:650;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);}
 .thead .pts{
@@ -493,7 +493,7 @@ details .note{margin-top:10px;}
   .tab{font-size:12.5px;padding:11px 9px;gap:5px;}
   .tab svg{width:13px;height:13px;}
   .card{padding:16px;}
-  .thead,.trow{grid-template-columns:20px minmax(7.5rem,1fr) 32px 52px 42px;gap:5px;}
+  .thead,.trow{grid-template-columns:20px minmax(7.5rem,1fr) 64px 46px;gap:5px;}
   .thead .pts{font-size:9.5px;}
   .tname{font-size:13.5px;}
   .mscore{font-size:20px;}
@@ -1535,7 +1535,7 @@ function vTable(){
     big4:'Dört büyük'
   };
   var notlar={
-    adj:'Anlık = girilen skorlar. Olması gereken = anlık + uçan pay. Senaryo, resmi tablo değil.',
+    adj:'Olması gereken = resmi puan + uçan pay. Resmi puan TFF sırası sekmesinde.',
     tff:'Düdük payı yok. Resmi puan, ikili seri, averaj, atılan gol.',
     hata:'Kaç karar lehte / aleyhte işlendi. Puan değil, defter sayımı.',
     big4:'Yalnız dört büyüklerin düdük payı.'
@@ -1552,14 +1552,13 @@ function vTable(){
   h+='</div>';
 
   if(gor==='adj'){
-    h+='<div class="thead"><div class="pos">#</div><div>Takım</div><div class="pts">Anlık</div><div class="pts">Olması gereken</div><div class="pts">Fark</div></div><div class="tstack">';
+    h+='<div class="thead"><div class="pos">#</div><div>Takım</div><div class="pts">Olması gereken</div><div class="pts">Fark</div></div><div class="tstack">';
     T.adj.forEach(function(r){
       var move=r.realPos-r.adjPos;
       var lo=Math.min(r.low,r.high), hi=Math.max(r.low,r.high);
       var acik = S.acikTakim===r.name;
       h+='<div class="trow trow-t'+(acik?' acik':'')+'" data-takim="'+esc(r.name)+'" onclick="takimAc(this.getAttribute(\'data-takim\'))" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();takimAc(this.getAttribute(\'data-takim\'));}" role="button" tabindex="0">'
        +'<div class="pos rank'+(r.adjPos<=3?(' r'+r.adjPos):'')+'">'+r.adjPos+'</div>'+teamCell(r.name, ligRozet(r.adjPos))
-       +'<div class="pts">'+r.pts+'</div>'
        +'<div class="pts">'+(r.pts+r.mid).toFixed(1)+'</div>'
        +'<div class="delta '+(r.mid>=0?'up':'down')+'" title="üç senaryo '+lo.toFixed(1)+' … '+hi.toFixed(1)+'">'+(r.mid>=0?'+':'')+r.mid.toFixed(1)
        +(move!==0?'<span class="mv">'+(move>0?'▲':'▼')+Math.abs(move)+'</span>':'')+'</div></div>';
