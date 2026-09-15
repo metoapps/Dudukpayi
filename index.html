@@ -134,6 +134,9 @@ h1 span{color:var(--amber);font-style:italic;font-weight:500;letter-spacing:-.02
 .kpi:nth-child(1){animation-delay:80ms;}
 .kpi:nth-child(2){animation-delay:120ms;}
 .kpi:nth-child(3){animation-delay:160ms;}
+.kpi.flight{position:relative;overflow:hidden;background:linear-gradient(135deg,var(--panel),color-mix(in oklab,var(--amberFill) 18%,var(--panel)));}
+.kpi.flight:after{content:"✦";position:absolute;right:12px;top:10px;color:var(--amber);font-size:20px;opacity:.7;}
+.kpi.flight b{color:var(--amber);}
 .kpi b{
   display:block;
   font-family:var(--font-display);
@@ -294,6 +297,7 @@ h1 span{color:var(--amber);font-style:italic;font-weight:500;letter-spacing:-.02
   background:var(--amberFill);color:#1a1400;transform:rotate(-90deg);
   transition:transform var(--motion-fast) var(--ease-out);}
 .hafta-ok.acik{transform:rotate(0deg);}
+.hafta-bas:hover{background:var(--panel2);}
 .hafta-ad{font-family:var(--font-display);font-size:18px;font-style:italic;letter-spacing:-.01em;color:var(--ink);flex:1;}
 .hafta-sayi{font-family:var(--font-num);font-variant-numeric:tabular-nums;font-size:11.5px;color:var(--muted);white-space:nowrap;}
 .hafta-sayi b{color:var(--amber);font-weight:650;}
@@ -383,6 +387,15 @@ button.btn:focus-visible{outline:2px solid var(--amber);outline-offset:2px;}
 .delta{font-family:var(--font-num);font-variant-numeric:tabular-nums;font-size:13px;text-align:right;font-weight:650;}
 .delta.up{color:var(--green);} .delta.down{color:var(--red);}
 .mv{font-size:11px;color:var(--amber);margin-left:3px;}
+.trow-t{cursor:pointer;border-radius:8px;transition:background var(--motion-quick),transform var(--motion-quick);}
+.trow-t:hover{background:var(--panel2);transform:translateX(2px);}
+.trow-t.acik{background:color-mix(in oklab,var(--amberFill) 10%,var(--panel));}
+.table-sub{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin:4px 0 14px;color:var(--muted);font-size:12px;}
+.table-sub strong{color:var(--ink);font-weight:650;}
+.flight-card{display:flex;align-items:center;gap:12px;background:color-mix(in oklab,var(--amberFill) 12%,var(--panel));border:1px solid color-mix(in oklab,var(--amber) 25%,transparent);border-radius:var(--radius-md);padding:12px 14px;margin:0 0 14px;}
+.flight-icon{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;background:var(--amberFill);color:#1a1400;font-size:17px;flex:0 0 auto;}
+.flight-card b{color:var(--ink);}
+.flight-card small{display:block;color:var(--muted);font-size:11.5px;margin-top:2px;}
 
 .match{border-left:2px solid var(--edge);padding:12px 0 14px 14px;margin-bottom:14px;}
 .match:last-of-type{margin-bottom:0;}
@@ -392,6 +405,8 @@ button.btn:focus-visible{outline:2px solid var(--amber);outline-offset:2px;}
 .mteams .vs{color:var(--dim);font-weight:500;font-size:12px;}
 .mscore{font-family:var(--font-display);font-variant-numeric:tabular-nums;font-size:22px;font-weight:650;letter-spacing:-.03em;color:var(--ink);white-space:nowrap;}
 .mmeta{font-size:13px;color:var(--muted);margin-top:4px;line-height:1.5;}
+.impact-pill{display:inline-flex;align-items:center;padding:2px 7px;border-radius:99px;background:color-mix(in oklab,var(--amberFill) 22%,var(--panel));color:var(--amber);font-size:11px;font-weight:650;margin-left:5px;white-space:nowrap;}
+.break-pill{display:inline-flex;align-items:center;padding:2px 7px;border-radius:99px;background:var(--ink);color:var(--panel);font-size:10.5px;font-weight:650;margin-right:5px;white-space:nowrap;}
 .dec{font-size:13.5px;color:var(--body);margin-top:9px;padding-left:12px;border-left:2px solid var(--edge2);line-height:1.55;}
 .chip{display:inline-block;font-family:var(--font-num);font-variant-numeric:tabular-nums;font-size:11.5px;padding:2px 6px;
   box-shadow:0 0 0 1px var(--edge);border-radius:5px;color:var(--muted);margin-left:6px;}
@@ -497,6 +512,11 @@ details .note{margin-top:10px;}
   .thead .pts{font-size:9.5px;}
   .tname{font-size:13.5px;}
   .mscore{font-size:20px;}
+  .flight-card{align-items:flex-start;padding:11px;}
+  .flight-card small{font-size:11px;}
+  .table-sub{font-size:11px;}
+  .trow-t{padding-left:4px;padding-right:4px;}
+  .impact-pill{display:block;width:max-content;margin:4px 0 0;}
 }
 @media (prefers-reduced-motion:reduce){
   .bar{transition:none;}
@@ -1563,6 +1583,14 @@ function vTable(){
   h+='<button class="chip'+(gor==='hata'?' on':'')+'" onclick="tabloGor(\'hata\')">Hata sayısı</button>';
   h+='<button class="chip'+(gor==='big4'?' on':'')+'" onclick="tabloGor(\'big4\')">Dört büyük</button>';
   h+='</div>';
+  var enCokYukselen=T.adj.slice().sort(function(a,b){return (b.mid-a.mid)||(a.adjPos-b.adjPos);})[0];
+  var enCokDusen=T.adj.slice().sort(function(a,b){return (a.mid-b.mid)||(a.adjPos-b.adjPos);})[0];
+  var toplamUcan=0; T.adj.forEach(function(r){toplamUcan+=Math.max(0,r.mid);});
+  h+='<div class="flight-card"><div class="flight-icon">✦</div><div><b>'+(toplamUcan?toplamUcan.toFixed(1):'0')+' uçan puan</b><small>Kararlar düzeltilseydi puan tablosunda hareket edecek beklenen toplam puan</small></div></div>';
+  if(gor==='adj' && enCokYukselen){
+    h+='<div class="table-sub"><span>Gerçek puan → düzeltilmiş puan</span><span>En çok yükselen: <strong>'+esc(enCokYukselen.name)+'</strong> <span class="delta up">+'+enCokYukselen.mid.toFixed(1)+'</span>'
+      +(enCokDusen&&enCokDusen.mid<0?' · En çok düşen: <strong>'+esc(enCokDusen.name)+'</strong> <span class="delta down">'+enCokDusen.mid.toFixed(1)+'</span>':'')+'</span></div>';
+  }
 
   if(gor==='adj'){
     h+='<div class="thead"><div class="pos">#</div><div>Takım</div><div class="pts">Olması gereken</div><div class="pts">Fark</div></div><div class="tstack">';
@@ -1756,14 +1784,18 @@ function vMatches(){
       h+='<div class="hafta-ic">';
       grup.slice().reverse().forEach(function(m){
       var im=matchImpact(m), n=(m.decisions||[]).length;
+      var toplamEtki=Math.abs(im.mid.home)+Math.abs(im.mid.away);
+      var kirilma=toplamEtki>=0.75;
       h+='<div class="match'+(n?' has':'')+'"><div class="mtop">'+vsLine(m.home,m.away)
        +'<span class="mscore">'+m.hg+':'+m.ag+'</span></div><div class="mmeta">'
+       +(kirilma?'<span class="break-pill">Kırılma anı</span>':'')
        +esc(m.ref||"hakem girilmedi")
        +(n?(' · etki '+(im.mid.home>=0?'+':'')+im.mid.home.toFixed(2)+' / '+(im.mid.away>=0?'+':'')+im.mid.away.toFixed(2))
           :(m.incelendi?' · incelendi, hata yok':' · henüz incelenmedi'))
+       +(toplamEtki>0.05?'<span class="impact-pill">'+toplamEtki.toFixed(2)+' puan hareketi</span>':'')
        +(m.by?'<span class="by">'+esc(m.by)+'</span>':'')
        +'</div>';
-      (m.decisions||[]).forEach(function(x){
+      kararSirala(m.decisions).forEach(function(x){
         h+='<div class="dec">'+esc(typeOf(x.type).label)+' · mağdur: '+esc(x.harmed==="home"?m.home:m.away)+' · '+x.minute+'′'
          +'<span class="chip">%'+x.certainty+'</span>'
          +(x.by&&x.by!==m.by?'<span class="by">'+esc(x.by)+'</span>':'')
@@ -2381,7 +2413,7 @@ function render(){
    +'<p class="sub">Hakem kararları düzeltilseydi puan tablosu ne olurdu?</p>'
    +'<div class="kpis"><div class="kpi"><b>'+S.matches.length+'</b><span>maç</span></div>'
    +'<div class="kpi"><b>'+(maxHafta?maxHafta:"—")+'</b><span>hafta</span></div>'
-   +'<div class="kpi" title="Karar düzeltilseydi mağdurlara dönecek beklenen puan"><b>'+(pay?pay.toFixed(1):"0")+'</b><span>uçan puan</span></div></div>'
+   +'<div class="kpi flight" title="Karar düzeltilseydi mağdurlara dönecek beklenen puan"><b>'+(pay?pay.toFixed(1):"0")+'</b><span>uçan puan</span></div></div>'
    +'<div class="who">'
    +(MISAFIR
       ? '<span class="misafir">Misafir görünümü</span>'
