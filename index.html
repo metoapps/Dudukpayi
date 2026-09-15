@@ -655,8 +655,20 @@ function kalanPuan(gh,ga,dh,da,f){
 }
 var _impCache={};
 function impactTemizle(){ _impCache={}; }
+function fixtureKey(m){
+  return ["2026-27",String(m.week||"").trim(),norm(m.home),norm(m.away)].join("|");
+}
+function kararSirala(list){
+  return (list||[]).slice().sort(function(a,b){
+    return (+a.minute||45)-(+b.minute||45)
+      || String(a.type||"").localeCompare(String(b.type||""))
+      || String(a.harmed||"").localeCompare(String(b.harmed||""))
+      || (+a.certainty||0)-(+b.certainty||0);
+  });
+}
 function matchImpact(m){
-  var anahtar=String(m.id)+"|"+m.hg+"|"+m.ag+"|"+JSON.stringify(m.decisions||[]);
+  var ordered=kararSirala(m.decisions);
+  var anahtar=String(m.id)+"|"+m.hg+"|"+m.ag+"|"+JSON.stringify(ordered);
   if(_impCache[anahtar]) return _impCache[anahtar];
   var out=matchImpactHesap(m);
   if(Object.keys(_impCache).length>500) _impCache={};
@@ -665,7 +677,7 @@ function matchImpact(m){
 }
 function tohumluZar(m, mode){
   var parca=[m.hg,m.ag,mode||''];
-  (m.decisions||[]).forEach(function(d){
+  kararSirala(m.decisions).forEach(function(d){
     parca.push(d.type||'', d.harmed||'', +d.minute||0, +d.certainty||0);
   });
   var str=parca.join('|');
@@ -678,7 +690,7 @@ function tohumluZar(m, mode){
   };
 }
 function matchImpactHesap(m){
-  var list=m.decisions||[];
+  var list=kararSirala(m.decisions);
   var RED=["red_self","red_opp"];
   var scoreDecs=[], redDecs=[];
   list.forEach(function(d){ (RED.indexOf(d.type)>=0?redDecs:scoreDecs).push(d); });
@@ -948,7 +960,8 @@ function macTemizle(liste){
    .map(function(m){
      var kararlar=Array.isArray(m.decisions)?m.decisions:[];
      return {
-       id: m.id||Date.now()+Math.floor(Math.random()*1000),
+       id: m.id||((window.crypto&&crypto.randomUUID)?crypto.randomUUID():Date.now()+Math.floor(Math.random()*1000)),
+       fixtureKey: m.fixtureKey||fixtureKey(m),
        home: String(m.home), away: String(m.away),
        hg: tamSayi(m.hg,0,99,0), ag: tamSayi(m.ag,0,99,0),
        ref: m.ref==null?"":String(m.ref),
@@ -2141,7 +2154,9 @@ function saveMatch(){
     var lst=dup.map(function(m){return "  • "+m.hg+"-"+m.ag+(m.week?" ("+m.week+". hafta)":"")+(m.by?" — "+m.by:"");}).join("\n");
     if(!confirm(d.home+" — "+d.away+(d.week?" ("+d.week+". hafta)":"")+" zaten kayıtlı:\n"+lst+"\n\nYine de ikinci kez eklensin mi? Eklenirse tabloda iki maç olarak sayılır."))return;
   }
-  var rec={id:S.editId||Date.now(),week:(d.week||"").trim(),home:d.home,away:d.away,
+  var rec={id:S.editId||((window.crypto&&crypto.randomUUID)?crypto.randomUUID():Date.now()+Math.floor(Math.random()*1000)),
+    fixtureKey:fixtureKey({week:(d.week||"").trim(),home:d.home,away:d.away}),
+    week:(d.week||"").trim(),home:d.home,away:d.away,
     hg:+d.hg||0,ag:+d.ag||0,ref:(d.ref||"").trim(),
     decisions:(d.decs||[]).map(function(x){
       var k=Object.assign({}, x);
