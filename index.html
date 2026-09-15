@@ -89,7 +89,7 @@ body:before{
   pointer-events:none;z-index:-1;
   background:linear-gradient(180deg, color-mix(in oklab, var(--greenFill) 8%, transparent), transparent 78%);
 }
-.lockup{display:flex;align-items:center;gap:14px;animation:rise var(--motion-slow) var(--ease-out) both;}
+.lockup{display:flex;align-items:center;gap:14px;}
 .mark{flex:0 0 auto;display:block;border-radius:12px;box-shadow:var(--shadow);}
 .pitch-svg{position:absolute;right:-8px;top:8px;width:148px;height:96px;color:var(--green);opacity:.12;pointer-events:none;}
 h1{
@@ -121,7 +121,6 @@ h1 span{color:var(--amber);font-style:italic;font-weight:500;letter-spacing:-.02
 .sub{
   color:var(--body);font-size:16px;margin:14px 0 0;
   line-height:1.5;max-width:36ch;text-wrap:pretty;
-  animation:rise var(--motion-slow) var(--ease-out) 60ms both;
 }
 .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:22px;}
 .kpi{
