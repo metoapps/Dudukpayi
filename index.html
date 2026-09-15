@@ -123,7 +123,7 @@ h1 span{color:var(--amber);font-style:italic;font-weight:500;letter-spacing:-.02
   line-height:1.5;max-width:36ch;text-wrap:pretty;
   animation:rise var(--motion-slow) var(--ease-out) 60ms both;
 }
-.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:20px;}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:20px;}
 .kpi{
   background:var(--panel);
   border-radius:var(--radius-md);
@@ -408,6 +408,8 @@ button.btn:focus-visible{outline:2px solid var(--amber);outline-offset:2px;}
 .share-card{border:1px solid color-mix(in oklab,var(--green) 25%,transparent);background:color-mix(in oklab,var(--greenFill) 8%,var(--panel));}
 .sync-status{font-size:11px;color:var(--muted);margin-left:auto;}
 .why{margin-top:6px;font-size:11.5px;color:var(--muted);}
+.team-breakdown{background:var(--panel2);border-radius:10px;padding:10px 12px;margin-bottom:10px;}
+.team-breakdown>.dmeta{display:flex;align-items:center;gap:8px;justify-content:space-between;border-top:1px solid var(--edge2);padding:7px 0 0;margin-top:7px;}
 
 .match{border-left:2px solid var(--edge);padding:12px 0 14px 14px;margin-bottom:14px;}
 .match:last-of-type{margin-bottom:0;}
@@ -517,6 +519,7 @@ details .note{margin-top:10px;}
   .mark{width:44px;height:44px;}
   .pitch-svg{width:100px;height:66px;opacity:.1;}
   .kpi b{font-size:22px;}
+  .kpis{grid-template-columns:repeat(2,1fr);}
   .tab{font-size:12.5px;padding:11px 9px;gap:5px;}
   .tab svg{width:13px;height:13px;}
   .card{padding:16px;}
@@ -1503,10 +1506,12 @@ function etkiliKopyala(){
 }
 
 function takimAc(ad){ S.acikTakim = (S.acikTakim===ad?null:ad); render(); }
+function etkiTuru(d){ return (d.type==="goal_off"||d.type==="pen_opp"||d.type==="goal_opp") ? "doğrudan" : "olasılıksal"; }
 
 /* Bir takımın sayısı hangi maçlardan geliyor */
 function takimDetay(ad){
   var satir=[];
+  var tur={};
   S.matches.forEach(function(m){
     if(m.home!==ad && m.away!==ad) return;
     var evde=(m.home===ad), rakip=evde?m.away:m.home;
@@ -1514,15 +1519,21 @@ function takimDetay(ad){
     var etki=evde?im.mid.home:im.mid.away;
     var bosa=evde?im.mid.bosaHome:im.mid.bosaAway;
     var fazla=evde?im.mid.fazlaHome:im.mid.fazlaAway;
-    var kararlar=(m.decisions||[]).map(function(d){
+    var etkiler=kararEtkileri(m);
+    var kararlar=(m.decisions||[]).map(function(d,i){
       var lehte = (d.harmed==="home")===evde;
-      return {metin:typeOf(d.type).label+' · '+d.minute+"′ · %"+d.certainty, lehte:lehte};
+      var dv=evde?etkiler[i].home:etkiler[i].away;
+      var k=tur[d.type]||(tur[d.type]={label:typeOf(d.type).label,n:0,etki:0});
+      k.n++; k.etki+=dv;
+      return {metin:typeOf(d.type).label+' · '+d.minute+"′ · %"+d.certainty+' · '+etkiTuru(d), lehte:lehte};
     });
     satir.push({rakip:rakip, evde:evde, skor:(evde?m.hg+'-'+m.ag:m.ag+'-'+m.hg),
       hafta:m.week, hakem:m.ref, etki:etki, bosa:bosa, fazla:fazla, kararlar:kararlar});
   });
   if(!satir.length) return '<div class="detay"><p class="note" style="margin:0">Bu takımın kayıtlı maçı yok.</p></div>';
   var h='<div class="detay">';
+  var turList=Object.keys(tur).map(function(k){return tur[k];}).sort(function(a,b){return Math.abs(b.etki)-Math.abs(a.etki);});
+  if(turList.length){ h+='<div class="team-breakdown"><b>Bu takımın puan hareketi</b><div class="why">Karar türlerine göre tahmini net katkı; “doğrudan” ve “olasılıksal” etkiler model içinde birlikte hesaplanır.</div>'; turList.forEach(function(x){h+='<div class="dmeta"><span>'+esc(x.label)+'</span><strong class="'+(x.etki>=0?'dup':'ddown')+'">'+(x.etki>=0?'+':'')+x.etki.toFixed(2)+'</strong><span class="chip">'+x.n+' karar</span></div>';}); h+='</div>'; }
   satir.forEach(function(x){
     var etkili = Math.abs(x.etki)>0.005 || x.bosa>0.05 || x.fazla>0.05;
     h+='<div class="dsatir"><div class="dust">'
@@ -1825,7 +1836,7 @@ function vMatches(){
        +(m.by?'<span class="by">'+esc(m.by)+'</span>':'')
        +'</div>';
       kararSirala(m.decisions).forEach(function(x){
-        h+='<div class="dec">'+esc(typeOf(x.type).label)+' · mağdur: '+esc(x.harmed==="home"?m.home:m.away)+' · '+x.minute+'′'
+        h+='<div class="dec">'+esc(typeOf(x.type).label)+' · mağdur: '+esc(x.harmed==="home"?m.home:m.away)+' · '+x.minute+'′ · '+etkiTuru(x)
          +'<span class="chip">%'+x.certainty+'</span>'
          +(x.by&&x.by!==m.by?'<span class="by">'+esc(x.by)+'</span>':'')
          +(x.note?'<div style="color:var(--dim)">'+esc(x.note)+'</div>':'')+'</div>';
@@ -2439,21 +2450,21 @@ function render(){
              S.tab==="big4"?vBig4(): S.tab==="matches"?vMatches(): S.tab==="refs"?vRefs():
              S.tab==="method"?vKurallar(): vTeams();
   if(S.tab==="big4"){ S.tab="table"; S.gosterBig4=true; }
-  var karar=0, maxHafta=0, pay=0;
+  var karar=0, maxHafta=0, pay=0, incelenen=0;
   S.matches.forEach(function(m){
     karar+=(m.decisions||[]).length;
+    if(m.incelendi || (m.decisions||[]).length) incelenen++;
     var w=parseInt(m.week,10); if(isFinite(w)&&w>maxHafta) maxHafta=w;
-    if((m.decisions||[]).length){
-      var im=matchImpact(m);
-      pay+=Math.max(0,im.mid.home)+Math.max(0,im.mid.away);
-    }
   });
+  var headTable=S.matches.length?buildTable():null;
+  if(headTable) headTable.adj.forEach(function(r){pay+=Math.max(0,r.mid);});
   app.innerHTML='<div class="wrap"><header class="head"><svg class="pitch-svg" viewBox="0 0 120 80" fill="none" aria-hidden="true"><rect x="4" y="4" width="112" height="72" rx="2" stroke="currentColor" stroke-width="1.4"/><line x1="60" y1="4" x2="60" y2="76" stroke="currentColor" stroke-width="1.2"/><circle cx="60" cy="40" r="12" stroke="currentColor" stroke-width="1.2"/><rect x="4" y="22" width="18" height="36" stroke="currentColor" stroke-width="1.2"/><rect x="98" y="22" width="18" height="36" stroke="currentColor" stroke-width="1.2"/><rect x="4" y="30" width="8" height="20" stroke="currentColor" stroke-width="1.1"/><rect x="108" y="30" width="8" height="20" stroke="currentColor" stroke-width="1.1"/><circle cx="60" cy="40" r="1.4" fill="currentColor"/></svg>'
    +'<div class="lockup"><svg class="mark" width="52" height="52" viewBox="0 0 32 32" fill="none" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#0B1210"/><rect x="2.5" y="2.5" width="27" height="27" rx="6.5" stroke="#126B45" stroke-width="1" opacity=".55"/><line x1="16" y1="3" x2="16" y2="29" stroke="#126B45" stroke-width=".7" opacity=".45"/><circle cx="16" cy="16" r="4.2" stroke="#126B45" stroke-width=".7" opacity=".45"/><rect x="4.5" y="13.2" width="14.5" height="5.6" rx="1.8" fill="#E8B62C"/><circle cx="20.2" cy="16" r="5.4" fill="#E8B62C"/><rect x="6" y="14.6" width="2.1" height="2.8" rx=".5" fill="#0B1210"/><circle cx="20.6" cy="16" r="1.85" fill="#0B1210"/></svg><div><h1>Düdük <span>Payı.</span></h1>'
    +'<p class="season"><em>2026–27</em> Süper Lig</p></div></div>'
    +'<p class="sub">Hakem kararları düzeltilseydi puan tablosu ne olurdu?</p>'
    +'<div class="kpis"><div class="kpi"><b>'+S.matches.length+'</b><span>maç</span></div>'
    +'<div class="kpi"><b>'+(maxHafta?maxHafta:"—")+'</b><span>hafta</span></div>'
+   +'<div class="kpi"><b>'+incelenen+'/'+S.matches.length+'</b><span>incelenen</span></div>'
    +'<div class="kpi flight" title="Karar düzeltilseydi mağdurlara dönecek beklenen puan"><b>'+(pay?pay.toFixed(1):"0")+'</b><span>uçan puan</span></div></div>'
    +'<div class="who">'
    +(MISAFIR
