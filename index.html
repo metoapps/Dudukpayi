@@ -19,6 +19,7 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230B1210'/%3E%3Crect y='10' width='32' height='3' fill='%23126B45'/%3E%3Crect y='19' width='32' height='3' fill='%23126B45'/%3E%3Crect x='4' y='13' width='15' height='6' rx='2' fill='%23E8B62C'/%3E%3Ccircle cx='20.5' cy='16' r='6' fill='%23E8B62C'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Figtree:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Newsreader:ital,opsz,wght@0,6..72,500;0,6..72,650;0,6..72,700;1,6..72,500;1,6..72,650&display=swap" rel="stylesheet">
+<script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
 <style>
 :root{
   color-scheme:light dark;
@@ -434,6 +435,15 @@ button.btn:focus-visible{outline:2px solid var(--amber);outline-offset:2px;}
 .empty{text-align:center;padding:36px 18px;color:var(--muted);font-size:15px;line-height:1.65;text-wrap:pretty;}
 .empty svg{display:block;margin:0 auto 14px;color:var(--green);opacity:.4;}
 .note{font-size:13.5px;color:var(--muted);line-height:1.65;margin-top:14px;text-wrap:pretty;}
+.lab-hero{background:linear-gradient(135deg,color-mix(in oklab,var(--greenFill) 10%,var(--panel)),var(--panel));border:1px solid color-mix(in oklab,var(--green) 20%,transparent);}
+.lab-badge{display:inline-flex;align-items:center;gap:7px;color:var(--green);font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;}
+.lab-badge:before{content:"";width:7px;height:7px;border-radius:50%;background:var(--greenFill);}
+.lab-preview{margin-top:14px;border-radius:12px;overflow:hidden;background:var(--panel2);border:1px solid var(--edge);}
+.lab-preview video{display:block;width:100%;max-height:420px;background:#0B1210;object-fit:contain;}
+.lab-preview .lab-link{display:block;padding:12px 14px;color:var(--amber);font-size:13px;overflow-wrap:anywhere;}
+.lab-rule{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:12px;}
+.lab-result{border-left:3px solid var(--amberFill);background:color-mix(in oklab,var(--amberFill) 10%,var(--panel));}
+@media(max-width:560px){.lab-rule{grid-template-columns:1fr;}}
 .warn{background:#F7E8E4;box-shadow:0 0 0 1px #E8C4BC;color:#8A2B22;
   padding:13px 15px;border-radius:var(--radius-md);font-size:14px;line-height:1.55;margin-bottom:14px;}
 .ok{background:#E4F3EB;box-shadow:0 0 0 1px #B7DCC8;color:#0A5B43;
@@ -951,16 +961,17 @@ var S={tema:"acik", me:null, teams:DEFAULT_TEAMS.slice(), matches:[], tab:"table
        msg:"", binId:"", sync:"yerel", quick:null,
        cekHaftaNo:"", cekBusy:false, cekMsg:"", cekHata:false, pasteMetin:"", hakemSira:"hata",
        silinen:{}, acikHafta:null, acikHakem:null, ornek:false, yerineYaz:false, acikEtkili:false,
-       tabloGor:"adj", macArama:"", macFiltre:"all"};
+       tabloGor:"adj", macArama:"", macFiltre:"all",
+       lab:{url:"",match:"",minute:"",type:"",preview:false,fileUrl:"",fileName:"",copied:false}};
 /* Misafir kipi: adres ?misafir ile bitiyorsa uygulama salt okunur açılır.
    Kimlik sorulmaz, yazma yolları kapanır, düzenleme sekmeleri gizlenir. */
 var MISAFIR = /(^|[?&#])misafir(=|&|$)/.test(location.search + location.hash);
 var MISAFIR_BIN = "7e5bcb28b0d4471ca91a";
 
 var TABS=MISAFIR
- ?[["table","Tablo"],["matches","Maçlar"],["refs","Hakemler"]]
+ ?[["table","Tablo"],["matches","Maçlar"],["lab","Pozisyon"]]
  :[["table","Tablo"],["add","Maç ekle"],["matches","Maçlar"],
-          ["refs","Hakemler"]];
+          ["refs","Hakemler"],["lab","Pozisyon"]];
 var ICO={
   duduk:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" aria-hidden="true"><path d="M3 10h9l4-3v10l-4-3H3z"/><path d="M19 9a5 5 0 0 1 0 6"/></svg>',
   table:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>',
@@ -968,6 +979,7 @@ var ICO={
   add:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>',
   matches:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 11h18"/></svg>',
   refs:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" aria-hidden="true"><path d="M12 3l3 6 6 .8-4.4 4.2 1.2 6.2L12 17.3 5.2 20.2l1.2-6.2L2 9.8 8 9z"/></svg>',
+  lab:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m10 9 5 3-5 3z"/></svg>',
   teams:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9c.3.6.9 1 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>',
   method:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>'
 };
@@ -2149,6 +2161,76 @@ function vTeams(){
   return h;
 }
 
+/* ---------------- Pozisyon Laboratuvarı ----------------
+   Bu akış ana deftere ve puan hesaplarına hiç dokunmaz. X metni veri olarak
+   alınmaz; yalnızca video bağlantısı/önizlemesi inceleme girdisidir. */
+function labUrlOku(v){
+  try{
+    var u=new URL(String(v||"").trim());
+    var host=u.hostname.toLowerCase().replace(/^www\./,"");
+    if(host!=="x.com"&&host!=="twitter.com"&&host!=="mobile.twitter.com") return null;
+    return u.href;
+  }catch(e){ return null; }
+}
+function labLinkKaydet(){
+  var el=document.getElementById("labUrl"), url=labUrlOku(el&&el.value);
+  if(!url){ S.msg="Geçerli bir X/Twitter gönderi bağlantısı yapıştır."; render(); return; }
+  S.lab.url=url; S.lab.preview=true; S.lab.copied=false; S.msg=""; render();
+}
+function labDosya(inp){
+  var f=inp&&inp.files&&inp.files[0]; if(!f)return;
+  if(!/^video\//.test(f.type)){ S.msg="Lütfen bir video dosyası seç."; render(); return; }
+  if(S.lab.fileUrl) try{URL.revokeObjectURL(S.lab.fileUrl);}catch(e){}
+  S.lab.fileUrl=URL.createObjectURL(f); S.lab.fileName=f.name; S.lab.preview=true; S.lab.copied=false; S.msg=""; render();
+}
+function labTalepKopyala(){
+  var l=S.lab, kaynak=l.fileUrl?("Yerel video dosyası: "+l.fileName):(l.url||"Bağlantı girilmedi");
+  var metin="Düdük Payı — Pozisyon Laboratuvarı inceleme talebi\n\n"
+   +"Kaynak: "+kaynak+"\n"
+   +(l.match?"Maç: "+l.match+"\n":"")
+   +(l.minute?"Dakika: "+l.minute+"\n":"")
+   +(l.type?"Pozisyon türü: "+l.type+"\n":"")
+   +"\nTweet metni ve paylaşan kişinin yorumu dikkate alınmasın. Yalnızca videodaki görüntü incelensin."
+   +" Görüntü kare kare, yavaşlatılarak ve mümkün olan en iyi yakınlaştırmayla değerlendirilsin."
+   +" Güncel IFAB futbol kurallarına göre kısa karar, gerekçe, güven yüzdesi ve görüntü kalitesi notu verilsin."
+   +" Bu sonuç ana puan tablosunu değiştirmesin; yalnızca eğlence amaçlı pozisyon görüşü olarak kalsın.";
+  S.lab.copied=true; panoYaz(metin,"İnceleme talebi panoya kopyalandı.","Talep kopyalanamadı — metni seçip kopyalayabilirsin.");
+}
+function xWidgetYukle(){
+  try{
+    if(window.twttr&&twttr.widgets&&twttr.widgets.load) twttr.widgets.load(document.getElementById("labEmbed"));
+  }catch(e){}
+}
+function vLab(){
+  var l=S.lab, h='';
+  h+='<div class="card lab-hero"><span class="lab-badge">Eğlence amaçlı bağımsız araç</span>'
+   +'<span class="lbl" style="margin-top:10px">Pozisyon Laboratuvarı</span>'
+   +'<p class="note" style="margin-top:0">Bir X/Twitter pozisyon bağlantısı veya video yükle. Paylaşanın yazdığı yorum kararımızı etkilemez; yalnızca görüntü incelenir.</p>'
+   +'<p class="note">Video; mümkün olan en iyi açı, yakınlaştırma ve yavaşlatmayla değerlendirilir. Görüntü yetersizse bunu açıkça belirtiriz.</p></div>';
+  h+='<div class="card"><span class="lbl">Videoyu getir</span>'
+   +'<label for="labUrl">X/Twitter gönderi bağlantısı</label>'
+   +'<div class="row"><input id="labUrl" type="url" inputmode="url" placeholder="https://x.com/..." value="'+esc(l.url||"")+'"><button class="btn" style="flex:0 0 auto" onclick="labLinkKaydet()">Göster</button></div>'
+   +'<div style="text-align:center;color:var(--dim);font-size:12px;margin:12px 0">veya</div>'
+   +'<label for="labFile">Videoyu doğrudan yükle</label><input id="labFile" type="file" accept="video/*" onchange="labDosya(this)">';
+  if(l.preview){
+    h+='<div class="lab-preview">';
+    if(l.fileUrl) h+='<video controls playsinline preload="metadata" src="'+esc(l.fileUrl)+'"></video>';
+    else h+='<div id="labEmbed" style="padding:10px"><blockquote class="twitter-tweet" data-dnt="true"><a href="'+esc(l.url)+'">X/Twitter gönderisini aç</a></blockquote><a class="lab-link" href="'+esc(l.url)+'" target="_blank" rel="noopener">Gönderiyi X’te aç</a></div>';
+    h+='</div>';
+  }
+  h+='</div>';
+  h+='<div class="card"><span class="lbl">Pozisyon bilgisi</span>'
+   +'<div class="row"><div><label for="labMatch">Maç (isteğe bağlı)</label><input id="labMatch" placeholder="Örn. Beşiktaş — Trabzonspor" value="'+esc(l.match||"")+'" oninput="S.lab.match=this.value"></div>'
+   +'<div><label for="labMinute">Dakika</label><input id="labMinute" inputmode="numeric" placeholder="Örn. 67" value="'+esc(l.minute||"")+'" oninput="S.lab.minute=this.value"></div></div>'
+   +'<label for="labType" style="margin-top:12px">Pozisyon türü (isteğe bağlı)</label><select id="labType" onchange="S.lab.type=this.value"><option value="">Seçmek istemiyorum</option>';
+  ["Penaltı / devam","Ofsayt","Gol / gol değil","Kırmızı kart","Faul / devam","Diğer"].forEach(function(x){h+='<option'+(l.type===x?' selected':'')+'>'+x+'</option>';});
+  h+='</select><button class="btn" style="margin-top:14px" onclick="labTalepKopyala()">İnceleme talebini kopyala</button>'
+   +(l.copied?'<p class="note" role="status" style="color:var(--green);margin-bottom:0">Talep hazır. Bağlantıyı veya videoyu bu sohbetle paylaşınca pozisyonu inceleyebilirim.</p>':'')
+   +'</div>';
+  h+='<div class="card lab-result"><span class="lbl">Sonuç nasıl görünecek?</span><div class="lab-rule"><div><b>Karar</b><br><span class="note" style="margin-top:0">Penaltı / penaltı değil</span></div><div><b>Güven</b><br><span class="note" style="margin-top:0">%80 — güçlü kanaat</span></div><div><b>Görüntü</b><br><span class="note" style="margin-top:0">Açı ve kalite yeterli</span></div></div><p class="note">Bu bölümün sonucu maç kararlarına, hakem istatistiklerine veya puan tablosuna kesinlikle yazılmaz.</p></div>';
+  return h;
+}
+
 
 /* ---------------- Hızlı karar girişi ---------------- */
 function quickPanel(m){
@@ -2466,7 +2548,7 @@ function render(){
   if(S.tab==="duduk") S.tab="table";
   var body = S.tab==="table"?vTable(): S.tab==="add"?vAdd():
              S.tab==="big4"?vBig4(): S.tab==="matches"?vMatches(): S.tab==="refs"?vRefs():
-             S.tab==="method"?vKurallar(): vTeams();
+             S.tab==="lab"?vLab(): S.tab==="method"?vKurallar(): vTeams();
   if(S.tab==="big4"){ S.tab="table"; S.gosterBig4=true; }
   var karar=0, maxHafta=0, pay=0, incelenen=0;
   S.matches.forEach(function(m){
@@ -2505,6 +2587,7 @@ function render(){
       return '<button class="tab'+(S.tab===t[0]?' on':'')+'" onclick="go(\''+t[0]+'\')">'+(ICO[t[0]]||'')+t[1]+'</button>';
     }).join('')+'</nav></div><main>'+body+'</main></div>';
   tabGolge(); tabOrtala();
+  if(S.tab==="lab" && S.lab.url && !S.lab.fileUrl) setTimeout(xWidgetYukle,0);
   var n2=document.getElementById("tabs"); if(n2) n2.scrollLeft=tabX;
   window.scrollTo(0,y);
   if(fid){
