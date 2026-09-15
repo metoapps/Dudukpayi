@@ -693,11 +693,12 @@ var TABAN_EV=1.45, TABAN_DEP=1.20;
 /* 90 + altı dakika uzatma. 90′ sonrası kırmızı sıfırlanmasın. */
 var MAC_DK=90;
 var UZATMA_TABAN=6;
-function kalanPuan(gh,ga,dh,da,f){
+function kalanPuan(gh,ga,dh,da,f,etkiF){
   f=Math.max(0,Math.min(1,f==null?1:+f));
+  etkiF=Math.max(0,Math.min(1,etkiF==null?f:+etkiF));
   if(Math.abs(dh)<0.001 && Math.abs(da)<0.001) return {home:0,away:0};
   var th=TABAN_EV*f, ta=TABAN_DEP*f;
-  var ile=extraPtsFromXg(gh,ga,Math.max(0.001,th+dh),Math.max(0.001,ta+da));
+  var ile=extraPtsFromXg(gh,ga,Math.max(0.001,th+dh*etkiF),Math.max(0.001,ta+da*etkiF));
   var siz=extraPtsFromXg(gh,ga,th,ta);
   return {home:ile.home-siz.home, away:ile.away-siz.away};
 }
@@ -705,6 +706,9 @@ var _impCache={};
 function impactTemizle(){ _impCache={}; }
 function fixtureKey(m){
   return ["2026-27",String(m.week||"").trim(),norm(m.home),norm(m.away)].join("|");
+}
+function yeniId(){
+  return (window.crypto&&crypto.randomUUID)?crypto.randomUUID():("m"+Date.now().toString(36)+Math.random().toString(36).slice(2,8));
 }
 function kararSirala(list){
   return (list||[]).slice().sort(function(a,b){
@@ -793,7 +797,9 @@ function matchImpactHesap(m){
       var disk=realPts(gh,ga);
       var pts={home:disk[0], away:disk[1]};
       if(Math.abs(addH)>0.001||Math.abs(addA)>0.001){
-        var extra2=kalanPuan(gh,ga,addH,addA,remF||1);
+        /* addH/addA zaten olayın kendi kalan süresiyle ölçeklenmiştir;
+           ortak remF ile ikinci kez küçültülmemelidir. */
+        var extra2=kalanPuan(gh,ga,addH,addA,remF||1,1);
         pts={home:disk[0]+extra2.home, away:disk[1]+extra2.away};
       }
       var nrm=normPts(pts.home, pts.away);
@@ -1008,8 +1014,8 @@ function macTemizle(liste){
    .map(function(m){
      var kararlar=Array.isArray(m.decisions)?m.decisions:[];
      return {
-       id: m.id||((window.crypto&&crypto.randomUUID)?crypto.randomUUID():Date.now()+Math.floor(Math.random()*1000)),
-       fixtureKey: m.fixtureKey||fixtureKey(m),
+       id: m.id||yeniId(),
+       fixtureKey: fixtureKey(m),
        home: String(m.home), away: String(m.away),
        hg: tamSayi(m.hg,0,99,0), ag: tamSayi(m.ag,0,99,0),
        ref: m.ref==null?"":String(m.ref),
@@ -1132,6 +1138,7 @@ function macBirlestir(a,b){
   }
   var out={
     id:yeni.id, home:yeni.home, away:yeni.away,
+    fixtureKey:fixtureKey(yeni),
     hg:yeni.hg, ag:yeni.ag, week:yeni.week,
     ref:(yeni.ref&&String(yeni.ref).trim())?yeni.ref:eski.ref,
     by:yeni.by||eski.by, skorOnay:!!yeni.skorOnay,
@@ -1148,8 +1155,9 @@ function birlestirDefter(yerel, uzak){
   function al(m){
     if(!m||m.id==null) return;
     var sid=String(m.id);
-    if(silinen[sid] && (!m.upd || silinen[sid]>=m.upd)) return;
-    map[sid]=map[sid]?macBirlestir(map[sid], m):m;
+    var fk=fixtureKey(m);
+    if((silinen[sid] && (!m.upd || silinen[sid]>=m.upd)) || silinen[fk]) return;
+    map[fk]=map[fk]?macBirlestir(map[fk], m):m;
   }
   ((uzak&&uzak.matches)||[]).forEach(al);
   ((yerel&&yerel.matches)||[]).forEach(al);
@@ -2309,6 +2317,7 @@ function delMatch(id){
   S.matches=S.matches.filter(function(x){return String(x.id)!==String(id);});
   S.silinen=S.silinen||{};
   S.silinen[String(id)]=Date.now();
+  if(m) S.silinen[fixtureKey(m)]=Date.now();
   impactTemizle();
   save(); render();
 }
@@ -2350,9 +2359,8 @@ function norm(s){
    Ücretsiz "123" anahtarı sınırlı ve paylaşımlı; yoğun kullanımda ya da
    kaynak değişirse çalışmayabilir. Başarısız olursa kullanıcı elle arayıp
    yapıştırma kutusunu kendisi doldurmaya devam edebilir — akış bozulmaz.
-   ÖNEMLİ: 2026-27 boş dönerse eski sezonlar denenir. Hangi sezondan
-   geldiği mutlaka yazılır, yoksa geçen sezonun skorları bu sezonun
-   haftası diye deftere girer. */
+   Yalnızca hedef sezon kullanılır; kaynak boş dönerse eski sezon verisi
+   kesinlikle bu haftaya karıştırılmaz. */
 function internettenCek(){
   if(MISAFIR||S.cekBusy) return;
   var el=document.getElementById("cekHafta");
@@ -2362,11 +2370,7 @@ function internettenCek(){
 
   var KOK="https://www.thesportsdb.com/api/v1/json/123/eventsround.php?id=4339&r="+hafta;
   var HEDEF="2026-2027";
-  var denemeler=[
-    {s:HEDEF,                 url:KOK+"&s=2026-2027"},
-    {s:"2025-2026",           url:KOK+"&s=2025-2026"},
-    {s:"sezon belirtilmemiş", url:KOK}
-  ];
+  var denemeler=[{s:HEDEF,url:KOK+"&s=2026-2027"}];
   function dene(i){
     if(i>=denemeler.length){
       S.cekBusy=false;
@@ -2389,14 +2393,12 @@ function internettenCek(){
         satirlar.push({home:H,away:A,hg:parseInt(hg,10)||0,ag:parseInt(ag,10)||0,ref:"",week:String(hafta)});
       });
       S.pasteMetin = satirlar.length ? JSON.stringify(satirlar,null,1) : "";
-      var yanlisSezon=(denemeler[i].s!==HEDEF);
       var parts=[];
-      if(yanlisSezon) parts.push("DİKKAT: "+HEDEF+" sezonu boş döndü, bu veri "+denemeler[i].s+" kaynağından geliyor — kaydetmeden önce her satırı doğrula");
       if(satirlar.length) parts.push(satirlar.length+" maç bulundu, hakem alanlarını doldurup \"Maçları ekle\"ye basmadan önce gözden geçir");
       if(skorsuz) parts.push(skorsuz+" maç henüz oynanmamış");
       if(eslesmeyen.length) parts.push("tanınmayan takım: "+eslesmeyen.join(", "));
       S.cekMsg = parts.length ? parts.join(". ")+"." : "Bu haftadan kullanılabilir maç çıkmadı.";
-      S.cekHata = !satirlar.length || yanlisSezon;
+      S.cekHata = !satirlar.length;
       render();
     }).catch(function(){ dene(i+1); });
   }
@@ -2436,7 +2438,7 @@ function pasteWeek(){
     if(H===A){ sorunlu.push(String(x.home)+' — iki taraf aynı takım'); return; }
     var wk=String(x.week||"").trim();
     if(isDup(H,A,wk)){ mukerrer++; return; }
-    S.matches.push({id:Date.now()+i,week:wk,home:H,away:A,
+    S.matches.push({id:yeniId(),fixtureKey:fixtureKey({week:wk,home:H,away:A}),week:wk,home:H,away:A,
       hg:Number(x.hg)||0,ag:Number(x.ag)||0,ref:(x.ref||"").trim(),decisions:[],by:S.me,upd:Date.now()});
     eklendi++;
   });
