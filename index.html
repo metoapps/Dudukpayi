@@ -130,11 +130,7 @@ h1 span{color:var(--amber);font-style:italic;font-weight:500;letter-spacing:-.02
   padding:15px 13px 13px;
   min-height:82px;
   box-shadow:var(--shadow);
-  animation:rise var(--motion-slow) var(--ease-out) both;
 }
-.kpi:nth-child(1){animation-delay:80ms;}
-.kpi:nth-child(2){animation-delay:120ms;}
-.kpi:nth-child(3){animation-delay:160ms;}
 .kpi.flight{position:relative;overflow:hidden;background:linear-gradient(135deg,var(--panel),color-mix(in oklab,var(--amberFill) 18%,var(--panel)));}
 .kpi.flight:after{content:"✦";position:absolute;right:12px;top:10px;color:var(--amber);font-size:20px;opacity:.7;}
 .kpi.flight b{color:var(--amber);}
@@ -495,6 +491,22 @@ details .note{margin-top:10px;}
   background:transparent;border:0;box-shadow:0 0 0 1px var(--edge);
   color:var(--muted);padding:6px 11px;min-height:32px;border-radius:99px;
   font-size:12px;font-weight:600;font-family:inherit;cursor:pointer;line-height:1;
+}
+.tablo-arac .chip{
+  background:var(--panel2);
+  padding:8px 13px;
+  min-height:36px;
+  font-size:12.5px;
+}
+.tablo-arac .chip:nth-child(2),.tablo-arac .chip:nth-child(3){
+  color:var(--green);
+  box-shadow:0 0 0 1px color-mix(in oklab,var(--green) 42%,var(--edge));
+  font-weight:700;
+}
+.tablo-arac .chip.on{
+  background:var(--ink);
+  color:var(--panel);
+  box-shadow:0 0 0 1.5px var(--ink);
 }
 .chip.on{color:var(--ink);box-shadow:0 0 0 1.5px var(--ink);background:var(--panel);}
 .chip:focus-visible{outline:2px solid var(--amber);outline-offset:2px;}
