@@ -1006,6 +1006,11 @@ function tamSayi(v,alt,ust,varsayilan){
   if(!isFinite(n)) n=varsayilan;
   return Math.max(alt,Math.min(ust,n));
 }
+function kaynakUrl(v){
+  var s=String(v==null?"":v).trim();
+  if(!s) return "";
+  return /^https?:\/\//i.test(s) ? s.slice(0,500) : "";
+}
 function macTemizle(liste){
   if(!Array.isArray(liste)) return [];
   var gecerliTip={};
@@ -1037,6 +1042,7 @@ function macTemizle(liste){
                    minute: tamSayi(d.minute,1,120,45),
                    certainty: tamSayi(d.certainty,0,100,80),
                    note: d.note==null?"":String(d.note),
+                   source: kaynakUrl(d.source),
                    by: d.by==null?"":String(d.by),
                    upd: tamSayi(d.upd,0,9e15,0) };
         }), m.silinenKarar),
@@ -1141,6 +1147,7 @@ function macBirlestir(a,b){
     fixtureKey:fixtureKey(yeni),
     hg:yeni.hg, ag:yeni.ag, week:yeni.week,
     ref:(yeni.ref&&String(yeni.ref).trim())?yeni.ref:eski.ref,
+    source:kaynakUrl(yeni.source)||kaynakUrl(eski.source),
     by:yeni.by||eski.by, skorOnay:!!yeni.skorOnay,
     incelendi: !!(yeni.incelendi || (yeni.decisions||[]).length),
     upd:Math.max(a.upd||0,b.upd||0),
@@ -1759,6 +1766,7 @@ function vAdd(){
      +' oninput="document.getElementById(\'cert'+i+'\').textContent=this.value"'
      +' onchange="setDec('+i+',\'certainty\',+this.value)">'
      +'<input id="dnote'+i+'" placeholder="Not (isteğe bağlı)" value="'+esc(x.note)+'" oninput="setDecQ('+i+',\'note\',this.value)" style="margin-top:8px">'
+     +'<input id="dsource'+i+'" type="url" placeholder="Kaynak bağlantısı (isteğe bağlı)" value="'+esc(x.source||"")+'" oninput="setDecQ('+i+',\'source\',this.value)" style="margin-top:8px">'
      +'<button class="btn danger" style="margin-top:9px" onclick="delDec('+i+')">Sil</button></div>';
   });
   h+='<label class="note" style="display:flex;align-items:flex-start;gap:8px;margin:4px 0 12px;cursor:pointer">'
@@ -1865,7 +1873,8 @@ function vMatches(){
         h+='<div class="dec">'+esc(typeOf(x.type).label)+' · mağdur: '+esc(x.harmed==="home"?m.home:m.away)+' · '+x.minute+'′ · '+etkiTuru(x)
          +'<span class="chip">%'+x.certainty+'</span>'
          +(x.by&&x.by!==m.by?'<span class="by">'+esc(x.by)+'</span>':'')
-         +(x.note?'<div style="color:var(--dim)">'+esc(x.note)+'</div>':'')+'</div>';
+         +(x.note?'<div style="color:var(--dim)">'+esc(x.note)+'</div>':'')
+         +(kaynakUrl(x.source)?'<div style="margin-top:4px"><a href="'+esc(kaynakUrl(x.source))+'" target="_blank" rel="noopener noreferrer">Kaynağı aç ↗</a></div>':'')+'</div>';
       });
       if(S.quick&&String(S.quick.id)===String(m.id)&&!MISAFIR){ h+=quickPanel(m); }
       else if(!MISAFIR){
@@ -2295,7 +2304,7 @@ function saveMatch(){
 function editMatch(id){
   var m=macById(id); if(!m)return;
   S.draft={home:m.home,away:m.away,hg:m.hg,ag:m.ag,ref:m.ref,week:m.week,skorOnay:!!m.skorOnay,incelendi:!!m.incelendi,silinenKarar:m.silinenKarar||{},
-    decs:(m.decisions||[]).map(function(d){return {kid:d.kid,type:d.type,harmed:d.harmed,minute:d.minute,certainty:d.certainty,note:d.note||"",by:d.by,upd:d.upd||0};})};
+    decs:(m.decisions||[]).map(function(d){return {kid:d.kid,type:d.type,harmed:d.harmed,minute:d.minute,certainty:d.certainty,note:d.note||"",source:d.source||"",by:d.by,upd:d.upd||0};})};
   S.editId=id; S.tab="add"; render();
 }
 function cancelEdit(){ S.draft=null; S.editId=null; S.tab="matches"; render(); }
