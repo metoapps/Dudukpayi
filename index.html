@@ -2175,16 +2175,19 @@ function labUrlOku(v){
 function labLinkKaydet(){
   var el=document.getElementById("labUrl"), url=labUrlOku(el&&el.value);
   if(!url){ S.msg="Geçerli bir X/Twitter gönderi bağlantısı yapıştır."; render(); return; }
+  if(S.lab.fileUrl) try{URL.revokeObjectURL(S.lab.fileUrl);}catch(e){}
+  S.lab.fileUrl=""; S.lab.fileName="";
   S.lab.url=url; S.lab.preview=true; S.lab.copied=false; S.msg=""; render();
 }
 function labDosya(inp){
   var f=inp&&inp.files&&inp.files[0]; if(!f)return;
   if(!/^video\//.test(f.type)){ S.msg="Lütfen bir video dosyası seç."; render(); return; }
   if(S.lab.fileUrl) try{URL.revokeObjectURL(S.lab.fileUrl);}catch(e){}
-  S.lab.fileUrl=URL.createObjectURL(f); S.lab.fileName=f.name; S.lab.preview=true; S.lab.copied=false; S.msg=""; render();
+  S.lab.fileUrl=URL.createObjectURL(f); S.lab.fileName=f.name; S.lab.url=""; S.lab.preview=true; S.lab.copied=false; S.msg=""; render();
 }
 function labTalepKopyala(){
   var l=S.lab, kaynak=l.fileUrl?("Yerel video dosyası: "+l.fileName):(l.url||"Bağlantı girilmedi");
+  if(!l.fileUrl&&!l.url){ S.msg="Önce bir X/Twitter bağlantısı yapıştır veya video yükle."; render(); return; }
   var metin="Düdük Payı — Pozisyon Laboratuvarı inceleme talebi\n\n"
    +"Kaynak: "+kaynak+"\n"
    +(l.match?"Maç: "+l.match+"\n":"")
@@ -2197,9 +2200,16 @@ function labTalepKopyala(){
   S.lab.copied=true; panoYaz(metin,"İnceleme talebi panoya kopyalandı.","Talep kopyalanamadı — metni seçip kopyalayabilirsin.");
 }
 function xWidgetYukle(){
+  function dene(){
+    if(S.tab!=="lab"||!S.lab.url||S.lab.fileUrl)return;
+    try{
+      if(window.twttr&&twttr.widgets&&twttr.widgets.load){ twttr.widgets.load(document.getElementById("labEmbed")); return; }
+    }catch(e){}
+    setTimeout(dene,250);
+  }
   try{
-    if(window.twttr&&twttr.widgets&&twttr.widgets.load) twttr.widgets.load(document.getElementById("labEmbed"));
-  }catch(e){}
+    if(window.twttr&&twttr.ready) twttr.ready(dene); else setTimeout(dene,250);
+  }catch(e){ setTimeout(dene,250); }
 }
 function vLab(){
   var l=S.lab, h='';
