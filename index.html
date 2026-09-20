@@ -983,7 +983,8 @@ var S={tema:"acik", me:null, teams:DEFAULT_TEAMS.slice(), matches:[], tab:"table
        tabloGor:"adj", macArama:"", macFiltre:"all"};
 /* Misafir kipi: adres ?misafir ile bitiyorsa uygulama salt okunur açılır.
    Kimlik sorulmaz, yazma yolları kapanır, düzenleme sekmeleri gizlenir. */
-var MISAFIR = /(^|[?&#])misafir(=|&|$)/.test(location.search + location.hash);
+var ADMIN = lsGet('dp-admin') === 'true';
+var MISAFIR = !ADMIN;
 var MISAFIR_BIN = "7e5bcb28b0d4471ca91a";
 
 var TABS=MISAFIR
