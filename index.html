@@ -983,7 +983,17 @@ var S={tema:"acik", me:null, teams:DEFAULT_TEAMS.slice(), matches:[], tab:"table
        tabloGor:"adj", macArama:"", macFiltre:"all"};
 /* Misafir kipi: adres ?misafir ile bitiyorsa uygulama salt okunur açılır.
    Kimlik sorulmaz, yazma yolları kapanır, düzenleme sekmeleri gizlenir. */
-var ADMIN = lsGet('dp-admin') === 'true';
+var URL_MISAFIR = /(^|[?&#])misafir(=|&|$)/.test(location.search + location.hash);
+var ADMIN = false;
+if(URL_MISAFIR){
+  ADMIN = false;
+} else if(lsGet('dp-admin') === 'true'){
+  ADMIN = true;
+} else {
+  var girilenSifre = window.prompt("Admin şifresi:");
+  if(girilenSifre === "Guven777"){ lsSet('dp-admin','true'); ADMIN = true; }
+  else { ADMIN = false; }
+}
 var MISAFIR = !ADMIN;
 var MISAFIR_BIN = "7e5bcb28b0d4471ca91a";
 
