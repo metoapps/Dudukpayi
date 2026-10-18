@@ -1176,7 +1176,7 @@ function birlestirDefter(yerel, uzak){
     if(!m||m.id==null) return;
     var sid=String(m.id);
     var fk=fixtureKey(m);
-    if((silinen[sid] && (!m.upd || silinen[sid]>=m.upd)) || silinen[fk]) return;
+    if((silinen[sid] && (!m.upd || silinen[sid]>=m.upd)) || (silinen[fk] && (!m.upd || silinen[fk]>=m.upd))) return;
     map[fk]=map[fk]?macBirlestir(map[fk], m):m;
   }
   ((uzak&&uzak.matches)||[]).forEach(al);
@@ -2311,7 +2311,13 @@ function saveMatch(){
     }
     S.matches=S.matches.map(function(m){return ayniMac(m.id,S.editId)?rec:m;});
   }
-  else{ S.matches.push(rec); }
+  else{
+    // Explicit re-add of a deleted fixture supersedes its old tombstone.
+    // Preserve the tombstone until its age expires, so older remote copies cannot reappear.
+    var deletedAt=(S.silinen||{})[rec.fixtureKey]||0;
+    if(rec.upd<=deletedAt) rec.upd=deletedAt+1;
+    S.matches.push(rec);
+  }
   S.draft=null; S.editId=null; S.tab="matches"; save(); render();
 }
 function editMatch(id){
@@ -2460,8 +2466,10 @@ function pasteWeek(){
     if(H===A){ sorunlu.push(String(x.home)+' — iki taraf aynı takım'); return; }
     var wk=String(x.week||"").trim();
     if(isDup(H,A,wk)){ mukerrer++; return; }
-    S.matches.push({id:yeniId(),fixtureKey:fixtureKey({week:wk,home:H,away:A}),week:wk,home:H,away:A,
-      hg:Number(x.hg)||0,ag:Number(x.ag)||0,ref:(x.ref||"").trim(),decisions:[],by:S.me,upd:Date.now()});
+    var key=fixtureKey({week:wk,home:H,away:A});
+    var ts=Math.max(Date.now(),((S.silinen||{})[key]||0)+1);
+    S.matches.push({id:yeniId(),fixtureKey:key,week:wk,home:H,away:A,
+      hg:Number(x.hg)||0,ag:Number(x.ag)||0,ref:(x.ref||"").trim(),decisions:[],by:S.me,upd:ts});
     eklendi++;
   });
   el.value="";
