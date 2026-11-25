@@ -387,6 +387,19 @@ button.btn:focus-visible{outline:2px solid var(--amber);outline-offset:2px;}
 .delta{font-family:var(--font-num);font-variant-numeric:tabular-nums;font-size:13px;text-align:right;font-weight:650;}
 .delta.up{color:var(--green);} .delta.down{color:var(--red);}
 .mv{font-size:11px;color:var(--amber);margin-left:3px;}
+.mv.up{color:var(--green);} .mv.down{color:var(--red);}
+.thead.tadj,.trow.tadj{grid-template-columns:20px minmax(0,1fr) 40px 62px 46px;gap:6px;}
+.tcell{min-width:0;}
+.tcell .team{min-width:0;}
+.tcell .tname{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;}
+.tsira{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.tsira .rozet{transform:scale(.85);transform-origin:left center;}
+.tsira{font-size:11px;color:var(--dim);margin-top:2px;padding-left:22px;font-variant-numeric:tabular-nums;}
+.pts.resmi{color:var(--muted);font-weight:500;}
+.pts.olmali{font-weight:750;font-size:15.5px;}
+.delta.notr{color:var(--dim);}
+.okuma{display:grid;gap:5px;font-size:12.5px;line-height:1.45;color:var(--muted);background:var(--panel2);border-radius:10px;padding:10px 12px;margin:0 0 12px;}
+.okuma b{color:var(--ink);}
 .trow-t{cursor:pointer;border-radius:8px;transition:background var(--motion-quick),transform var(--motion-quick);}
 .trow-t:hover{background:var(--panel2);transform:translateX(2px);}
 .trow-t.acik{background:color-mix(in oklab,var(--amberFill) 10%,var(--panel));}
@@ -621,15 +634,43 @@ var BIG4=["Beşiktaş","Fenerbahçe","Galatasaray","Trabzonspor"];
 
 /* ---------------- Model ---------------- */
 var XG_PEN=0.76, RED_BASE=0.65, RED_SUPP=0.35;
+/* Altı tür, üç puan sınıfı:
+   kesin gol (goal_off, goal_opp, pen_opp) · olası gol (pen_not, 0,76) · eksik adam (red_self, red_opp).
+   "taraf: rakip" → cümlenin öznesi mağdurun rakibidir. */
+var GRUPLAR=[
+ {id:"gol", ad:"Gol", acik:"Bir gol haksız iptal edildi ya da sayılmaması gereken gol sayıldı"},
+ {id:"pen", ad:"Penaltı", acik:"Verilmesi gereken penaltı verilmedi ya da haksız penaltı gole döndü"},
+ {id:"kir", ad:"Kırmızı kart", acik:"Haksız kırmızı gösterildi ya da gösterilmesi gereken kırmızı gösterilmedi"}
+];
 var TYPES=[
- {id:"pen_not",  label:"Verilmeyen penaltı"},
- {id:"goal_off", label:"Haksız iptal edilen gol"},
- {id:"pen_opp",  label:"Rakibe yanlış verilen penaltı (gol oldu)"},
- {id:"goal_opp", label:"Rakibin geçersiz golü sayıldı"},
- {id:"red_self", label:"Mağdur takıma haksız kırmızı"},
- {id:"red_opp",  label:"Rakibe gösterilmeyen kırmızı"}
+ {id:"pen_not",  grup:"pen", label:"Penaltı verilmedi",        kisa:"penaltısı verilmedi",               etki:"≈0,76 gol (penaltıların ~%76'sı gol olur)"},
+ {id:"pen_opp",  grup:"pen", label:"Haksız penaltı gole döndü", kisa:"haksız penaltı kazandı, gol oldu",  etki:"o gol geri alınır", taraf:"rakip"},
+ {id:"goal_off", grup:"gol", label:"Gol haksız iptal edildi",   kisa:"golü haksız iptal edildi",          etki:"o gol geri verilir"},
+ {id:"goal_opp", grup:"gol", label:"Geçersiz gol sayıldı",      kisa:"geçersiz golü sayıldı",             etki:"o gol geri alınır", taraf:"rakip"},
+ {id:"red_self", grup:"kir", label:"Haksız kırmızı kart",       kisa:"oyuncusu haksız atıldı",            etki:"düzeltmede kalan süre 11'e 11 oynanır"},
+ {id:"red_opp",  grup:"kir", label:"Verilmeyen kırmızı kart",   kisa:"oyuncusu atılması gerekirken atılmadı", etki:"düzeltmede rakip kalan süreyi 10 kişi oynar", taraf:"rakip"}
 ];
 function typeOf(id){for(var i=0;i<TYPES.length;i++){if(TYPES[i].id===id)return TYPES[i];}return TYPES[0];}
+/* Takım adlı, eki gerektirmeyen cümle: "Beşiktaş: golü haksız iptal edildi". */
+function kararOzne(type, harmed, m){
+  var t=typeOf(type), magdur=harmed==="away"?m.away:m.home, rakip=harmed==="away"?m.home:m.away;
+  return t.taraf==="rakip"?rakip:magdur;
+}
+function kararMetni(d, m){ return kararOzne(d.type,d.harmed,m)+": "+typeOf(d.type).kisa; }
+/* Bir grup için dört seçenek: iki tür × iki takım. Değer "tür|mağdur". */
+function grupSecenekleri(grup, m){
+  var out=[];
+  TYPES.filter(function(t){return t.grup===grup;}).forEach(function(t){
+    ["home","away"].forEach(function(ozneTaraf){
+      var harmed = t.taraf==="rakip" ? (ozneTaraf==="home"?"away":"home") : ozneTaraf;
+      out.push({type:t.id, harmed:harmed, metin:(ozneTaraf==="home"?m.home:m.away)+": "+t.kisa, etki:t.etki});
+    });
+  });
+  return out;
+}
+/* Türkçe tek ondalık; −0,0 yok. */
+function tr1(x){ var v=Math.round((+x||0)*10)/10; if(Math.abs(v)<0.05) v=0; return (v<0?"−":"")+Math.abs(v).toFixed(1).replace(".",","); }
+function tr1i(x){ var t=tr1(x); return (t!=="0,0"&&x>0?"+":"")+t; }
 
 var DEFAULT_TEAMS=["Alanyaspor","Amedspor","Başakşehir","Beşiktaş","Çorum FK","Erzurumspor FK","Eyüpspor","Fenerbahçe","Galatasaray","Gaziantep FK","Gençlerbirliği","Göztepe","Kasımpaşa","Kocaelispor","Konyaspor","Rizespor","Samsunspor","Trabzonspor"];
 var TEAM_COLORS={"Alanyaspor":["#F47920","#1D4F8C"],"Amedspor":["#C8102E","#1B7A3D"],"Başakşehir":["#F47B20","#1A1A1A"],"Beşiktaş":["#111813","#E8ECE6"],"Çorum FK":["#C8102E","#111813"],"Erzurumspor FK":["#0033A0","#E8ECE6"],"Eyüpspor":["#5B1A4A","#C9A227"],"Fenerbahçe":["#002F6C","#E8B62C"],"Galatasaray":["#A90432","#E8B62C"],"Gaziantep FK":["#C8102E","#111813"],"Gençlerbirliği":["#C8102E","#111813"],"Göztepe":["#C8102E","#E8B62C"],"Kasımpaşa":["#003DA5","#E8ECE6"],"Kocaelispor":["#126B45","#111813"],"Konyaspor":["#126B45","#E8ECE6"],"Rizespor":["#003DA5","#C8102E"],"Samsunspor":["#C8102E","#E8ECE6"],"Trabzonspor":["#7B1113","#3B5998"]};
@@ -1596,7 +1637,7 @@ function vEtkili(){
     h+='<div class="ekar">'
      +'<div class="esira">'+(i+1)+'</div>'
      +'<div class="egovde">'
-     +'<div class="ebas">'+esc(typeOf(d.type).label)+'</div>'
+     +'<div class="ebas">'+esc(kararMetni(d,x.mac))+'</div>'
      +'<div class="emeta">'+esc(x.mac.home)+' '+x.mac.hg+'-'+x.mac.ag+' '+esc(x.mac.away)
      +' · '+esc(d.minute)+'′ · %'+esc(d.certainty)
      +(x.mac.ref?' · '+esc(x.mac.ref):'')+'</div>'
@@ -1618,7 +1659,7 @@ function etkiliKopyala(){
   if(!liste.length){ S.msg="Kopyalanacak karar yok."; render(); return; }
   var metin='Düdük Payı — bu sezon maç skorunu en çok değiştiren kararlar\n\n'
    + liste.map(function(x,i){
-      return (i+1)+'. '+typeOf(x.karar.type).label+' — '+x.magdur
+      return (i+1)+'. '+kararMetni(x.karar,x.mac)+' — mağdur '+x.magdur
         +' ('+x.mac.home+' '+x.mac.hg+'-'+x.mac.ag+' '+x.mac.away+', '+x.karar.minute+"′"
         +(x.mac.ref?', '+x.mac.ref:'')+') '
         +x.deger.toFixed(2)+' puan etki (mağdur '+(x.magdurKazanc>=0?'+':'')+x.magdurKazanc.toFixed(2)+')';
@@ -1648,7 +1689,7 @@ function takimDetay(ad){
       var dv=evde?etkiler[i].home:etkiler[i].away;
       var k=tur[d.type]||(tur[d.type]={label:typeOf(d.type).label,n:0,etki:0});
       k.n++; k.etki+=dv;
-      return {metin:typeOf(d.type).label+' · '+d.minute+"′ · %"+d.certainty+(oncVar(d)?' · öncesi '+d.oncH+'-'+d.oncA:'')+' · '+etkiTuru(d), lehte:lehte, etki:dv};
+      return {metin:kararMetni(d,m)+' · '+d.minute+"′ · %"+d.certainty+(oncVar(d)?' · öncesi '+d.oncH+'-'+d.oncA:''), lehte:lehte, etki:dv};
     });
     satir.push({rakip:rakip, evde:evde, skor:(evde?m.hg+'-'+m.ag:m.ag+'-'+m.hg),
       hafta:m.week, hakem:m.ref, etki:etki, bosa:bosa, fazla:fazla, kararlar:kararlar});
@@ -1684,14 +1725,13 @@ function ozetKopyala(){
   var mac=S.matches.length, karar=0;
   S.matches.forEach(function(m){karar+=(m.decisions||[]).length;});
   var satir=T.adj.slice(0,8).map(function(r,i){
-    var d=r.mid, ok=(r.realPos-r.adjPos);
-    return (i+1)+'. '+r.name+' '+(r.pts+r.mid).toFixed(1)
-      +(Math.abs(d)>=0.05?' ('+(d>0?'+':'')+d.toFixed(1)+')':'')
+    var ok=(r.realPos-r.adjPos);
+    return (i+1)+'. '+r.name+' — resmi '+r.pts+', olması gereken '+tr1(r.pts+r.mid)+' ('+tr1i(r.mid)+')'
       +(ok!==0?' '+(ok>0?'▲':'▼')+Math.abs(ok):'');
   }).join('\n');
-  var metin='Düdük Payı — hakem kararları düzeltilseydi puan tablosu\n'
+  var metin='Düdük Payı — hakem kararları doğru verilseydi puan tablosu\n'
     +mac+' maç, '+karar+' tartışmalı karar\n\n'+satir
-    +'\n\nParantez içi: kararların puan etkisi. ▲▼ gerçek sıralamaya göre değişim.';
+    +'\n\nParantez: + hakem yüzünden kaybedilen, − hakem sayesinde fazladan alınan puan. ▲▼ resmi sıraya göre değişim.';
   panoYaz(metin, 'Özet panoya kopyalandı.', 'Kopyalanamadı. Metni elle seçip kopyalayabilirsin.');
 }
 
@@ -1720,7 +1760,7 @@ function vTable(){
     big4:'Dört büyük'
   };
   var notlar={
-    adj:'Olması gereken = resmi puan + uçan pay. Resmi puan TFF sırası sekmesinde.',
+    adj:'',
     tff:'Düdük payı yok. Resmi puan, ikili seri, averaj, atılan gol.',
     hata:'Kaç karar lehte / aleyhte işlendi. Puan değil, defter sayımı.',
     big4:'Yalnız dört büyüklerin düdük payı.'
@@ -1728,7 +1768,13 @@ function vTable(){
   var h='<div class="card"><div class="card-head"><span class="lbl">'+(baslik[gor]||baslik.adj)+'</span>';
   if(gor==='adj') h+='<span><button class="kopya-link" onclick="ozetKopyala()">Özeti kopyala</button> · <button class="kopya-link" onclick="haftaPaylas()">Paylaş</button></span>';
   h+='</div>';
-  h+='<p class="note" style="margin-top:0">'+(notlar[gor]||notlar.adj)+'</p>';
+  if(gor==='adj'){
+    h+='<div class="okuma">'
+     +'<div><b>Resmi</b> TFF tablosundaki puan.</div>'
+     +'<div><b>Olması gereken</b> Tartışmalı kararlar doğru verilseydi beklenen puan.</div>'
+     +'<div><b>Fark</b> <span class="delta up">+</span> hakem kararları yüzünden <b>kaybedilen</b>, <span class="delta down">−</span> hakem kararları sayesinde <b>fazladan alınan</b> puan.</div>'
+     +'<div>Sıralama “olması gereken”e göre; takım adının altında resmi sıra yazar.</div></div>';
+  } else h+='<p class="note" style="margin-top:0">'+(notlar[gor]||'')+'</p>';
   h+='<div class="tablo-arac">';
   h+='<button class="chip'+(gor==='adj'?' on':'')+'" onclick="tabloGor(\'adj\')">Düzeltilmiş</button>';
   h+='<button class="chip'+(gor==='tff'?' on':'')+'" onclick="tabloGor(\'tff\')">TFF sırası</button>';
@@ -1737,23 +1783,25 @@ function vTable(){
   h+='</div>';
   var enCokYukselen=T.adj.slice().sort(function(a,b){return (b.mid-a.mid)||(a.adjPos-b.adjPos);})[0];
   var enCokDusen=T.adj.slice().sort(function(a,b){return (a.mid-b.mid)||(a.adjPos-b.adjPos);})[0];
-  h+='<div class="table-sub"><span>Uçan puan = takım bazında toplam pozitif tahmini etki.</span><span>İncelenen maç: <strong>'+S.matches.filter(function(m){return m.incelendi||(m.decisions||[]).length;}).length+'/'+S.matches.length+'</strong></span></div>';
-  if(gor==='adj' && enCokYukselen){
-    h+='<div class="table-sub"><span>Gerçek puan → düzeltilmiş puan</span><span>En çok yükselen: <strong>'+esc(enCokYukselen.name)+'</strong> <span class="delta up">+'+enCokYukselen.mid.toFixed(1)+'</span>'
-      +(enCokDusen&&enCokDusen.mid<0?' · En çok düşen: <strong>'+esc(enCokDusen.name)+'</strong> <span class="delta down">'+enCokDusen.mid.toFixed(1)+'</span>':'')+'</span></div>';
+  h+='<div class="table-sub"><span>İncelenen maç: <strong>'+S.matches.filter(function(m){return m.incelendi||(m.decisions||[]).length;}).length+'/'+S.matches.length+'</strong></span></div>';
+  if(gor==='adj' && enCokYukselen && enCokYukselen.mid>0.05){
+    h+='<div class="table-sub"><span>Hakemden en çok zarar gören: <strong>'+esc(enCokYukselen.name)+'</strong> <span class="delta up">'+tr1(enCokYukselen.mid)+' puan</span>'
+      +(enCokDusen&&enCokDusen.mid<-0.05?' · En çok yararlanan: <strong>'+esc(enCokDusen.name)+'</strong> <span class="delta down">'+tr1(-enCokDusen.mid)+' puan</span>':'')+'</span></div>';
   }
 
   if(gor==='adj'){
-    h+='<div class="thead"><div class="pos">#</div><div>Takım</div><div class="pts">Olması gereken</div><div class="pts">Fark</div></div><div class="tstack">';
+    h+='<div class="thead tadj"><div class="pos">#</div><div>Takım</div><div class="pts">Resmi</div><div class="pts">Olması gereken</div><div class="pts">Fark</div></div><div class="tstack">';
     T.adj.forEach(function(r){
       var move=r.realPos-r.adjPos;
       var lo=Math.min(r.low,r.high), hi=Math.max(r.low,r.high);
       var acik = S.acikTakim===r.name;
-      h+='<div class="trow trow-t'+(acik?' acik':'')+'" data-takim="'+esc(r.name)+'" onclick="takimAc(this.getAttribute(\'data-takim\'))" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();takimAc(this.getAttribute(\'data-takim\'));}" role="button" tabindex="0">'
-       +'<div class="pos rank'+(r.adjPos<=3?(' r'+r.adjPos):'')+'">'+r.adjPos+'</div>'+teamCell(r.name, ligRozet(r.adjPos))
-       +'<div class="pts"><div class="pts-flow"><span class="old">'+r.pts.toFixed(0)+'</span><span class="arrow">→</span><span class="new">'+(r.pts+r.mid).toFixed(1)+'</span></div><div class="rangebar" title="Tahmini aralık"><i style="width:'+Math.min(100,Math.max(8,(Math.abs(hi-lo)*18)))+'%"></i></div></div>'
-       +'<div class="delta '+(r.mid>=0?'up':'down')+'" title="üç senaryo '+lo.toFixed(1)+' … '+hi.toFixed(1)+'">'+(r.mid>=0?'+':'')+r.mid.toFixed(1)
-       +(move!==0?'<span class="mv">'+(move>0?'▲':'▼')+Math.abs(move)+'</span>':'')+'</div></div>';
+      var yon=move>0?'<span class="mv up">▲'+move+'</span>':(move<0?'<span class="mv down">▼'+(-move)+'</span>':'');
+      h+='<div class="trow trow-t tadj'+(acik?' acik':'')+'" data-takim="'+esc(r.name)+'" onclick="takimAc(this.getAttribute(\'data-takim\'))" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();takimAc(this.getAttribute(\'data-takim\'));}" role="button" tabindex="0" title="Aralık '+tr1(r.pts+lo)+' – '+tr1(r.pts+hi)+'">'
+       +'<div class="pos rank'+(r.adjPos<=3?(' r'+r.adjPos):'')+'">'+r.adjPos+'</div>'
+       +'<div class="tcell">'+teamCell(r.name)+'<div class="tsira">resmi sıra '+r.realPos+'. '+yon+ligRozet(r.adjPos)+'</div></div>'
+       +'<div class="pts resmi">'+r.pts+'</div>'
+       +'<div class="pts olmali">'+tr1(r.pts+r.mid)+'</div>'
+       +'<div class="delta '+(r.mid>0.05?'up':(r.mid<-0.05?'down':'notr'))+'">'+tr1i(r.mid)+'</div></div>';
       if(acik) h+=takimDetay(r.name);
     });
     h+='</div></div>';
@@ -1849,12 +1897,17 @@ function vAdd(){
    +'<button class="btn ghost" onclick="addDec()">+ Karar ekle</button></div>';
 
   d.decs.forEach(function(x,i){
-    h+='<div class="cand"><select onchange="setDec('+i+',\'type\',this.value)" style="margin-bottom:8px" aria-label="Karar türü">'
-     +TYPES.map(function(t){return '<option value="'+t.id+'"'+(t.id===x.type?' selected':'')+'>'+t.label+'</option>';}).join('')
-     +'</select><div class="row" style="margin-bottom:8px">'
-     +'<select onchange="setDec('+i+',\'harmed\',this.value)" aria-label="Mağdur taraf">'
-     +'<option value="home"'+(x.harmed==="home"?' selected':'')+'>Mağdur: '+esc(d.home)+'</option>'
-     +'<option value="away"'+(x.harmed==="away"?' selected':'')+'>Mağdur: '+esc(d.away)+'</option></select>'
+    h+='<div class="cand"><span class="lbl" style="margin-bottom:5px">Ne oldu?</span>'
+     +'<select onchange="setDecTur('+i+',this.value)" style="margin-bottom:4px" aria-label="Ne oldu">'
+     +GRUPLAR.map(function(g){
+        return '<optgroup label="'+esc(g.ad)+'">'+grupSecenekleri(g.id,d).map(function(o){
+          var v=o.type+'|'+o.harmed;
+          return '<option value="'+v+'"'+(o.type===x.type&&o.harmed===x.harmed?' selected':'')+'>'+esc(o.metin)+'</option>';
+        }).join('')+'</optgroup>';
+      }).join('')
+     +'</select>'
+     +'<p class="note" style="margin:0 0 8px;font-size:12px">Mağdur: <b>'+esc(x.harmed==="away"?d.away:d.home)+'</b> · '+esc(typeOf(x.type).etki)+'</p>'
+     +'<div class="row" style="margin-bottom:8px"><span class="note" style="align-self:center;margin:0">Dakika</span>'
      +'<input type="number" min="1" max="120" inputmode="numeric" value="'+x.minute+'" onchange="setDec('+i+',\'minute\',+this.value)" aria-label="Dakika"></div>'
      +'<span class="lbl" style="margin-bottom:5px">Kesinlik %<span id="cert'+i+'">'+x.certainty+'</span></span>'
      +'<input type="range" min="10" max="100" step="5" value="'+x.certainty+'"'
@@ -1970,7 +2023,7 @@ function vMatches(){
        +(m.by?'<span class="by">'+esc(m.by)+'</span>':'')
        +'</div>';
       kararSirala(m.decisions).forEach(function(x){
-        h+='<div class="dec">'+esc(typeOf(x.type).label)+' · mağdur: '+esc(x.harmed==="home"?m.home:m.away)+' · '+x.minute+'′ · '+etkiTuru(x)
+        h+='<div class="dec">'+esc(kararMetni(x,m))+' · '+x.minute+'′'+(oncVar(x)?' · öncesi '+x.oncH+'-'+x.oncA:'')
          +'<span class="chip">%'+x.certainty+'</span>'
          +(x.by&&x.by!==m.by?'<span class="by">'+esc(x.by)+'</span>':'')
          +(x.note?'<div style="color:var(--dim)">'+esc(x.note)+'</div>':'')
@@ -1997,8 +2050,8 @@ function macFiltrele(v){ S.macFiltre=v||"all"; render(); }
 function haftaPaylas(){
   var T=buildTable(), top=T.adj.slice().sort(function(a,b){return b.mid-a.mid;})[0], low=T.adj.slice().sort(function(a,b){return a.mid-b.mid;})[0];
   var text='Düdük Payı — güncel tablo\n'+S.matches.length+' maç, '+kararSay(S.matches)+' tartışmalı karar\n';
-  if(top) text+='En çok kazanan: '+top.name+' +'+top.mid.toFixed(1)+' puan\n';
-  if(low&&low.mid<0) text+='En çok kaybeden: '+low.name+' '+low.mid.toFixed(1)+' puan\n';
+  if(top&&top.mid>0.05) text+='Hakemden en çok zarar gören: '+top.name+' ('+tr1(top.mid)+' puan kaybetti)\n';
+  if(low&&low.mid<-0.05) text+='Hakemden en çok yararlanan: '+low.name+' ('+tr1(-low.mid)+' puan fazladan aldı)\n';
   text+='\nHakem kararları düzeltilseydi puan tablosu nasıl değişirdi?';
   if(navigator.share){ navigator.share({title:'Düdük Payı',text:text}).catch(function(){}); return; }
   panoYaz(text,'Özet panoya kopyalandı.','Paylaşım açılamadı.');
@@ -2225,18 +2278,26 @@ function vKurallar(){
    +'Kırpılan puan alanı yalnız beklenen puan 0-3 dışına taşarsa dolar; geçerli hesapta genelde boştur.</p></div>';
 
   h+='<div class="card"><span class="lbl">Tabloları okuma</span>'
-   +'<p class="note" style="margin-top:0"><b>Tablo.</b> <span style="color:var(--green)">Yeşil</span> kararlar yüzünden puan kaybetmiş, düzeltilince kazanıyor. <span style="color:var(--red)">Kırmızı</span> kararlardan puan kazanmış. ▲▼ gerçek sıralamaya göre yer değişimi. Bir takıma dokununca sayısının hangi maçlardan geldiği açılır.</p>'
-   +'<p class="note"><b>Sapma çubuğu.</b> Kararların kesinliği en dar ve en geniş yorumlandığında puanın nereye kadar gidebileceğini gösterir. Bant genişse sonuç tartışmalıdır.</p>'
+   +'<p class="note" style="margin-top:0"><b>Tablo.</b> Üç sayı: <b>Resmi</b> (TFF puanı), <b>Olması gereken</b> (kararlar doğru verilseydi), <b>Fark</b>. Fark <span style="color:var(--green)">+</span> ise takım hakem yüzünden puan kaybetmiş; <span style="color:var(--red)">−</span> ise hakem sayesinde fazladan puan almış. Takımın altındaki ▲▼, resmi sıraya göre yer değişimidir. Bir takıma dokununca sayının hangi maçlardan geldiği açılır.</p>'
+   +'<p class="note"><b>Aralık.</b> Bir satırın üzerinde durunca, kararların kesinliği en dar ve en geniş yorumlandığında “olması gereken” puanın gidebileceği aralık görünür.</p>'
    +'<p class="note"><b>Sıra.</b> TFF: puan → ikili seri bitmişse kendi araları → genel averaj → atılan gol. Düzeltilmiş tabloda averaj beklenen gol kaymasını içerir.</p>'
    +'<p class="note"><b>Dört Büyük.</b> Puan hareketi sıfır toplamlı değildir: 1–0 maç beraberliğe dönünce mağdur +1, rakip −2 alır. Dört büyük derbisinde de aynı kural geçerlidir. Anlamlı olan, bu dördün <b>ligin geri kalanına karşı</b> aldığı denge.</p>'
    +'<p class="note"><b>Hakemler.</b> Leh: rakibi mağdur eden karar sayısı. Aleyh: kendisinin mağdur olduğu. <span style="color:var(--amber)">◦</span> işaretli sayı puana dönüşemeyen mağduriyettir. Bir hakemin birkaç maçta çıkan farkı tesadüftür; örüntüden söz etmek için en az 8-10 maç ve iki yönlü kayıt gerekir.</p></div>';
 
-  h+='<div class="card"><span class="lbl">Karar türleri</span>';
-  TYPES.forEach(function(t){
-    h+='<div class="trow" style="grid-template-columns:minmax(0,1fr) auto"><div class="team" style="font-size:13.5px">'+esc(t.label)+'</div>'
-     +'<div class="pts" style="font-size:12px;color:var(--muted)">'+(t.id.indexOf("red")===0?'süreye bağlı':(t.id==="pen_not"?'0,76 gol':'1 gol'))+'</div></div>';
+  h+='<div class="card"><span class="lbl">Karar türleri — hangisini seçmeli?</span>'
+   +'<p class="note" style="margin-top:0">Önce hatanın neyle ilgili olduğunu seç (gol, penaltı, kırmızı kart), sonra ne olduğunu. Seçenekler takım adıyla yazılır; mağdur taraf kendiliğinden belirlenir.</p>';
+  GRUPLAR.forEach(function(g){
+    h+='<p class="note" style="margin:12px 0 4px"><b>'+esc(g.ad)+'</b></p>';
+    TYPES.filter(function(t){return t.grup===g.id;}).forEach(function(t){
+      h+='<div class="trow" style="grid-template-columns:minmax(0,1fr) auto"><div class="team" style="font-size:13.5px">X: '+esc(t.kisa)+'</div>'
+       +'<div class="pts" style="font-size:12px;color:var(--muted);font-weight:500">'+esc(t.etki)+'</div></div>';
+    });
   });
-  h+='<p class="note">Her karar <b>mağdur taraf</b> üzerinden girilir: iki takımdan hangisi haksızlığa uğradıysa o seçilir. Aynı maçta iki takım için de karar girilebilir.</p>'
+  h+='<p class="note"><b>Puanı farklı mı?</b> Altı tür üç sınıfa iner. '
+   +'<b>Kesin gol:</b> “golü haksız iptal edildi”, “geçersiz golü sayıldı” ve “haksız penaltı kazandı, gol oldu” aynı ağırlıktadır, çünkü üçünde de averaj mağdur lehine bir gol değişir. '
+   +'<b>Olası gol:</b> “penaltısı verilmedi” bunun 0,76 katıdır; penaltı kaçabilirdi. '
+   +'<b>Eksik adam:</b> iki kırmızı kart seçeneği birebir aynı hesaplanır; ikisinde de kalan sürede mağdur takım bir kişi üstündür. Etki dakika ilerledikçe azalır, 96′ ve sonrasında sıfırdır.</p>'
+   +'<p class="note">İki seçenek yine de ayrı tutulur, çünkü hakemin hangi yönde hata yaptığı kayıt olarak önemlidir (Hatalı düdük ve Hakemler sayımları). Haksız penaltı kaçtıysa skor değişmemiştir; kayda geçmez.</p>'
    +'<p class="note">Karar girilmezse maç tabloya etkisiz kaydedilir. Bu normaldir; maçların çoğunda tartışmalı karar yoktur.</p></div>';
 
   h+='<div class="card"><span class="lbl">Çakışma</span>'
@@ -2272,19 +2333,23 @@ function quickPanel(m){
   var q=S.quick;
   var h='<div class="qpanel">';
   var chips=[];
-  if(q.type) chips.push(typeOf(q.type).label);
-  if(q.harmed) chips.push("Mağdur: "+(q.harmed==="home"?m.home:m.away));
+  if(q.grup && !q.type) chips.push((GRUPLAR.filter(function(g){return g.id===q.grup;})[0]||{}).ad);
+  if(q.type) chips.push(kararMetni(q,m));
   if(q.certainty) chips.push("%"+q.certainty);
   if(chips.length) h+='<div class="qchips">'+chips.map(function(c){return '<span class="qchip">'+esc(c)+'</span>';}).join('')+'</div>';
 
-  if(!q.type){
-    h+='<p class="qstep">Ne oldu?</p><div class="qgrid">'
-     +TYPES.map(function(t){return '<button class="qbtn" onclick="quickSet(\'type\',\''+t.id+'\')">'+t.label+'</button>';}).join('')
+  if(!q.grup){
+    h+='<p class="qstep">Hata neyle ilgili?</p><div class="qgrid">'
+     +GRUPLAR.map(function(g){return '<button class="qbtn" onclick="quickSet(\'grup\',\''+g.id+'\')">'+esc(g.ad)
+        +'<br><span style="font-size:12px;color:var(--muted)">'+esc(g.acik)+'</span></button>';}).join('')
      +'</div>';
-  } else if(!q.harmed){
-    h+='<p class="qstep">Kim mağdur oldu?</p><div class="qgrid">'
-     +'<button class="qbtn" onclick="quickSet(\'harmed\',\'home\')">'+esc(m.home)+'</button>'
-     +'<button class="qbtn" onclick="quickSet(\'harmed\',\'away\')">'+esc(m.away)+'</button></div>';
+  } else if(!q.type){
+    h+='<p class="qstep">Ne oldu?</p><div class="qgrid">'
+     +grupSecenekleri(q.grup,m).map(function(o){
+        return '<button class="qbtn" onclick="quickTur(\''+o.type+'\',\''+o.harmed+'\')">'+esc(o.metin)
+          +'<br><span style="font-size:12px;color:var(--muted)">'+esc(o.etki)+'</span></button>';
+      }).join('')
+     +'</div>';
   } else if(!q.certainty){
     h+='<p class="qstep">Ne kadar net bir hata?</p><div class="qgrid">'
      +'<button class="qbtn" onclick="quickSet(\'certainty\',95)">Kesin hata<br><span style="font-size:12px;color:var(--muted)">tartışmasız</span></button>'
@@ -2312,7 +2377,10 @@ function quickPanel(m){
   return h;
 }
 function quickStart(id){
-  if(MISAFIR) return; S.quick={id:String(id),type:"",harmed:"",certainty:0,minute:0}; render(); }
+  if(MISAFIR) return; S.quick={id:String(id),grup:"",type:"",harmed:"",certainty:0,minute:0}; render(); }
+function quickTur(type,harmed){
+  if(MISAFIR) return;
+  S.quick.type=type; S.quick.harmed=harmed==="away"?"away":"home"; render(); }
 function quickDakika(){
   if(MISAFIR) return;
   var el=document.getElementById("qdk");
@@ -2363,6 +2431,11 @@ function addDec(){
   if(MISAFIR) return; S.draft.decs.push({kid:yeniKid(),type:"pen_not",harmed:"home",minute:45,certainty:80,note:"",oncH:"",oncA:"",by:S.me}); render(); }
 function setDec(i,k,v){
   if(MISAFIR) return; S.draft.decs[i][k]=v; S.draft.decs[i].by=S.me; S.draft.decs[i].upd=Date.now(); render(); }
+function setDecTur(i,v){
+  if(MISAFIR) return;
+  var p=String(v).split("|"); var x=S.draft.decs[i];
+  x.type=p[0]; x.harmed=p[1]==="away"?"away":"home"; x.by=S.me; x.upd=Date.now(); render();
+}
 function setDecSkor(i,k,v){
   if(MISAFIR) return;
   var t=String(v==null?"":v).trim();
@@ -2629,7 +2702,7 @@ function render(){
    +'<div class="kpis"><div class="kpi"><b>'+S.matches.length+'</b><span>maç</span></div>'
    +'<div class="kpi"><b>'+(maxHafta?maxHafta:"—")+'</b><span>hafta</span></div>'
    +'<div class="kpi"><b>'+incelenen+'/'+S.matches.length+'</b><span>incelenen</span></div>'
-   +'<div class="kpi flight" title="Karar düzeltilseydi mağdurlara dönecek beklenen puan"><b>'+(pay?pay.toFixed(1):"0")+'</b><span>uçan puan</span></div></div>'
+   +'<div class="kpi flight" title="Hakem kararları yüzünden takımların kaybettiği toplam puan"><b>'+tr1(pay)+'</b><span>kaybettirilen puan</span></div></div>'
    +'<div class="who">'
    +(MISAFIR
       ? '<span class="misafir">Misafir görünümü</span>'
