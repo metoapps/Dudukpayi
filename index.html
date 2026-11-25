@@ -1023,9 +1023,29 @@ var S={tema:"acik", me:null, teams:DEFAULT_TEAMS.slice(), matches:[], tab:"table
        cekHaftaNo:"", cekBusy:false, cekMsg:"", cekHata:false, pasteMetin:"", hakemSira:"hata",
        silinen:{}, acikHafta:null, acikHakem:null, ornek:false, yerineYaz:false, acikEtkili:false,
        tabloGor:"adj", macArama:"", macFiltre:"all"};
-/* Misafir kipi: adres ?misafir ile bitiyorsa uygulama salt okunur açılır.
+/* Misafir kipi: düz adres ya da ?misafir uygulamayı salt okunur açar.
    Kimlik sorulmaz, yazma yolları kapanır, düzenleme sekmeleri gizlenir. */
-var MISAFIR = /(^|[?&#])misafir(=|&|$)/.test(location.search + location.hash);
+/* Kimin yazabileceği:
+   Düz adres herkese salt okunur (misafir) açılır. Yazma, bir kez açılan
+   gizli düzenleme linkiyle (?yaz=ANAHTAR) o cihazda etkinleşir; anahtarın
+   kendisi kodda yok, yalnızca SHA-256 özeti var. ?misafir her zaman salt okunur
+   gösterir (düzenleyici de önizleme için kullanabilir).
+   Not: bu bir arayüz kilididir; ortak defterin gerçek koruması değildir. */
+var YAZ_OZET="160080161425ff90ae3364ce40d3b30b5dcf90498193f4cf44527b0a06413661";
+var YAZ_ANAHTAR="dp-yazar";
+function yazarMi(){ try{ return window.localStorage && localStorage.getItem(YAZ_ANAHTAR)===YAZ_OZET; }catch(e){ return false; } }
+function hexOzet(buf){ var a=new Uint8Array(buf), s=""; for(var i=0;i<a.length;i++){ s+=("0"+a[i].toString(16)).slice(-2); } return s; }
+(function yazLinki(){
+  var m=/[?&]yaz=([^&#]+)/.exec(location.search);
+  if(!m || !(window.crypto&&crypto.subtle&&window.TextEncoder)) return;
+  crypto.subtle.digest("SHA-256", new TextEncoder().encode(decodeURIComponent(m[1]))).then(function(b){
+    var ok=hexOzet(b)===YAZ_OZET;
+    try{ if(ok) localStorage.setItem(YAZ_ANAHTAR,YAZ_OZET); }catch(e){}
+    /* Anahtar adres çubuğunda ve geçmişte kalmasın. */
+    location.replace(location.pathname + (ok?"":"?misafir"));
+  });
+})();
+var MISAFIR = /(^|[?&#])misafir(=|&|$)/.test(location.search + location.hash) || !yazarMi();
 var MISAFIR_BIN = "7e5bcb28b0d4471ca91a";
 
 var TABS=MISAFIR

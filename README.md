@@ -19,3 +19,8 @@ Tek dosya: `index.html` (HTML + CSS + JS).
 ## Test
 
 `node tests/regression.test.js`
+
+## Erişim
+
+- `https://metoapps.github.io/Dudukpayi/` — herkese salt okunur (misafir).
+- Yazma: bir kez gizli `?yaz=…` linki açılınca o cihazda etkinleşir (anahtar kodda yok, yalnız SHA-256 özeti var). Arayüz kilididir, ortak defterin gerçek koruması değildir.
