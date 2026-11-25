@@ -650,6 +650,8 @@ h1{
 /* Tabela: sayfanın tek gösterişli anı */
 .pano{margin-top:18px;max-width:520px;}
 .who .ayar-btn{border-bottom:0;}
+.anahtar{margin-top:12px;}
+.anahtar .row .btn{flex:0 0 auto;}
 .pano-ust{margin:0 0 7px;font-size:13px;font-weight:600;color:var(--muted);}
 .pano-govde{
   background:#07100B;color:#E9F1EA;
@@ -1203,6 +1205,15 @@ function hexOzet(buf){ var a=new Uint8Array(buf), s=""; for(var i=0;i<a.length;i
     location.replace(location.pathname + (ok?"":"?misafir"));
   });
 })();
+function yazAnahtar(){
+  var el=document.getElementById("yazIn"); var v=(el&&el.value||"").trim();
+  if(!v || !(window.crypto&&crypto.subtle&&window.TextEncoder)){ S.msg="Anahtarı yaz."; render(); return; }
+  crypto.subtle.digest("SHA-256", new TextEncoder().encode(v)).then(function(b){
+    if(hexOzet(b)!==YAZ_OZET){ S.msg="Anahtar yanlış."; render(); return; }
+    try{ localStorage.setItem(YAZ_ANAHTAR,YAZ_OZET); }catch(e){}
+    location.replace(location.pathname);
+  });
+}
 var MISAFIR = /(^|[?&#])misafir(=|&|$)/.test(location.search + location.hash) || !yazarMi();
 var MISAFIR_BIN = "7e5bcb28b0d4471ca91a";
 
@@ -1437,11 +1448,16 @@ function remotePull(cb){
   fetch(binUrl()).then(function(r){return r.ok?r.json():null;})
   .then(function(d){
     if(d){
+      if(MISAFIR && lsGet("dp-me")){
+        var uz={}; ((d.matches)||[]).forEach(function(x){ uz[fixtureKey(x)]=1; });
+        S.yerelBekleyen=S.matches.filter(function(x){ return !uz[fixtureKey(x)]; }).length;
+      }
       var once=kararSay((d.matches)||[]);
       var m=birlestirDefter({teams:S.teams,matches:S.matches,silinen:S.silinen}, d);
       S.teams=m.teams; S.matches=m.matches; S.silinen=m.silinen;
       impactTemizle(); localSave();
-      if(kararSay(S.matches)<once && !MISAFIR){
+      /* Bu cihazda olup defterde olmayan maç/karar varsa ya da silme işlendiyse defteri güncelle. */
+      if(!MISAFIR && (kararSay(S.matches)!==once || S.matches.length!==((d.matches)||[]).length)){
         remotePush(function(){ if(cb)cb(true); });
         return;
       }
@@ -2820,6 +2836,7 @@ function render(){
    +'<div class="who">'
    +(MISAFIR
       ? '<span class="misafir">Misafir görünümü</span>'
+        +'<button class="temabtn" onclick="S.anahtarAc=!S.anahtarAc;render()">Defteri ben tutuyorum</button>'
         +'<button class="temabtn" onclick="temaDegis()">'+temaEtiket()+'</button>'
         +'<button class="temabtn" onclick="go(\'method\')">Kurallar</button>'
       : '<span>Defteri tutan: <b>'+esc(S.me)+'</b></span>'
@@ -2828,7 +2845,10 @@ function render(){
         +'<button class="temabtn" onclick="go(\'method\')">Kurallar</button>'
         +'<button class="ayar-btn" onclick="go(\'teams\')" title="Ayarlar" aria-label="Ayarlar">'+(ICO.teams||'')+'</button>'
         +'<span class="by">'+(S.sync==="ortak"?'● ortak defter':S.sync==="hata"?'● bağlantı hatası':S.sync==="…"?'●':'● yalnız bu cihaz')+'</span>')
-   +'</div></header>'
+   +'</div>'
+   +(MISAFIR&&S.anahtarAc?'<div class="anahtar"><label for="yazIn">Yazma anahtarı</label><div class="row"><input id="yazIn" type="password" autocomplete="current-password" placeholder="Sana verilen anahtar"><button class="btn" onclick="yazAnahtar()">Yazmayı aç</button></div><p class="note" style="margin:6px 0 0">Bu cihaz bir kez açılınca hatırlanır.</p></div>':'')
+   +(MISAFIR&&S.yerelBekleyen?'<div class="warn">Bu cihazda ortak deftere gönderilmemiş <b>'+S.yerelBekleyen+' maç</b> var. Silinmedi; yazmayı açınca deftere gönderilir.</div>':'')
+   +'</header>'
    +(S.ornek&&!MISAFIR&&!binUrl()?'<div class="warn">Örnek sezon — ortak deftere yazılmaz. Ayarlar’dan npoint kodunu yapıştırınca gerçek deftere geçersin.</div>':'')
    +(S.msg?'<div class="'+(/eklendi|kayıtlıydı|Bağlandı|yüklendi|kopyalandı|birleştirildi/.test(S.msg)?'ok':'warn')+'" role="status" aria-live="polite">'+esc(S.msg)+'</div>':'')
    +'<div class="tabwrap" id="tabwrap"><span class="tabok l">‹</span><span class="tabok r">›</span>'
