@@ -700,6 +700,17 @@ var TABAN_EV=1.45, TABAN_DEP=1.20;
 /* 90 + altı dakika uzatma. 90′ sonrası kırmızı sıfırlanmasın. */
 var MAC_DK=90;
 var UZATMA_TABAN=6;
+/* Olay anı skoru biliniyorsa kalan süre gol beklentisi, o maçta olaydan sonra
+   gerçekten atılan gollerle taban arasında yarı yarıya harmanlanır
+   (gamma-Poisson: taban = bir maçlık önsel). Böylece 0-4 biten maçta 10′
+   hatası, rakibin sonraki üstünlüğü yok sayılarak abartılmaz. */
+var GOZLEM_AGIRLIK=0.5;
+function kalanLambda(durum, m, f, bilinen){
+  var bh=TABAN_EV*f, ba=TABAN_DEP*f;
+  if(!bilinen) return [bh, ba];
+  var sonH=Math.max(0, m.hg-durum[0]), sonA=Math.max(0, m.ag-durum[1]);
+  return [(1-GOZLEM_AGIRLIK)*bh+GOZLEM_AGIRLIK*sonH, (1-GOZLEM_AGIRLIK)*ba+GOZLEM_AGIRLIK*sonA];
+}
 /* Bir skordan, kalan süre Poisson'u ile beklenen puan (mutlak). */
 function beklenenPuan(gh,ga,lh,la){
   gh=Math.max(0,gh); ga=Math.max(0,ga);
@@ -845,6 +856,7 @@ function matchImpactHesap(m){
         /* Oyun durumu: olay öncesi skoru girilmiş en erken karar (kararSirala dakikaya göre). */
         if(!durum && oncVar(d)){ durum=olaySonrasi(d,m); durumDk=+d.minute||45; }
       }
+      var durumBilinen=!!durum;
       if(!durum) durum=[m.hg, m.ag];
       else {
         /* O andan sonra sayılan haksız goller gerçek akışta oldu; geri alınabilmeleri için duruma eklenir. */
@@ -862,7 +874,8 @@ function matchImpactHesap(m){
         var alfa=late/k, f=rem/k;
         var Rh=0, Ra=0;
         if(alfa<1){
-          var lh=TABAN_EV*f, la=TABAN_DEP*f;
+          var lam=kalanLambda(durum, m, f, durumBilinen);
+          var lh=Math.max(0.001,lam[0]), la=Math.max(0.001,lam[1]);
           var ile=beklenenPuan(durum[0]+sh, durum[1]+sa, lh, la);
           var siz=beklenenPuan(durum[0], durum[1], lh, la);
           Rh=ile[0]-siz[0]; Ra=ile[1]-siz[1];
@@ -872,7 +885,8 @@ function matchImpactHesap(m){
       }
       if(redF>0 && (Math.abs(rh)>0.001||Math.abs(ra)>0.001)){
         var st=redDurum||[m.hg,m.ag];
-        var bh=TABAN_EV*redF, ba=TABAN_DEP*redF;
+        var rl=kalanLambda(st, m, redF, !!redDurum);
+        var bh=Math.max(0.001,rl[0]), ba=Math.max(0.001,rl[1]);
         var x1=beklenenPuan(st[0]+sh, st[1]+sa, Math.max(0.001,bh+rh), Math.max(0.001,ba+ra));
         var x0=beklenenPuan(st[0]+sh, st[1]+sa, bh, ba);
         H+=x1[0]-x0[0]; A+=x1[1]-x0[1];
@@ -2176,7 +2190,7 @@ function vKurallar(){
    +'<p class="note" style="margin-top:0"><b>Her karar kendi dakikasıyla bölünür.</b> '
    +'Karar için <b>geçlik = dakika / 90</b>. 90′ sonrası olay skor düzeltmesidir; uzatmada kalan süre dakikadan dakikaya küçülür. Karar kesinlik p ile gerçekleşir. Gerçekleşirse iki tahmin harmanlanır: <b>geçlik</b> kadarı golü doğrudan maç sonu skoruna yazar, <b>1 − geçlik</b> kadarı golü olay anındaki skora yazıp kalan süreyi iki skordan da aynı taban gol beklentisiyle oynatır ve farkı alır. '
    +'Gol kesin bir olaydır; gol beklentisine çevrilmez, tam gol olarak girer. 90′ sonrası kırmızı da kalan uzatmayla ölçülür.</p>'
-   +'<p class="note"><b>Olay anındaki skor önemlidir.</b> Karara “olaydan önceki skor” girilirse kalan süre o skordan oynatılır: 0-0’da verilmeyen penaltı, 0-2’de verilmeyenden daha değerlidir; önde on kişi kalmak, geride kalmaktan daha az zarar verir. Girilmezse maç sonu skoru kullanılır.</p>'
+   +'<p class="note"><b>Olay anındaki skor önemlidir.</b> Karara “olaydan önceki skor” girilirse kalan süre o skordan oynatılır: 0-0’da verilmeyen penaltı, 0-2’de verilmeyenden daha değerlidir; önde on kişi kalmak, geride kalmaktan daha az zarar verir. Girilmezse maç sonu skoru kullanılır. Skor girildiğinde kalan sürenin gol beklentisi, o maçta olaydan sonra gerçekten atılan gollerle lig tabanının yarı yarıya karışımıdır; 0-4 biten maçta erken hata, rakibin sonraki üstünlüğü yok sayılarak şişirilmez.</p>'
    +'<p class="note"><b>Karşılıklı hatalar birbirini götürür.</b> İki takımın da golü haksız iptal edildiyse averaj değişmez, etki sıfırdır.</p>'
    +'<p class="note"><b>Sonucu bilinen olaylar tam gol sayılır.</b> Golle biten yanlış penaltı ya da sayılan ofsaytlı gol geri alınırken 1 tam gol düşülür.</p>'
    +'<p class="note"><b>Kaçan yanlış penaltı kayda geçmez.</b> “Rakibe yanlış verilen penaltı (gol oldu)” yalnız top filelere gittiyse seçilir. Kurtarıldıysa ya da dışarı gittiyse skor zaten değişmemiştir; bu türe yazılmaz.</p>'
