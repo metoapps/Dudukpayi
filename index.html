@@ -1017,8 +1017,16 @@ function matchImpactHesap(m){
       redF=Math.max(redF,rf);
       if(!redDurum && oncVar(d)) redDurum=olaySonrasi(d,m);
       var rem=rf*w;
-      if(d.harmed==="home"){ rh+=RED_BASE*rem; ra-=RED_SUPP*rem; }
-      else { ra+=RED_BASE*rem; rh-=RED_SUPP*rem; }
+      /* RED_BASE: 11 kişilik takımın 10 kişiye karşı gol artışı.
+         RED_SUPP: 10 kişi kalan takımın kendi gol kaybı.
+         red_opp (rakip atılmalıydı): düzeltmede mağdur 10 kişiye karşı oynar (+BASE),
+           rakip 10 kişi kalır (−SUPP).
+         red_self (mağdur haksız atıldı): düzeltmede mağdur 11 kişiye döner, kendi
+           kaybı geri gelir (+SUPP); rakibin 10 kişiye karşı artışı silinir (−BASE). */
+      var kendi=d.type==="red_self";
+      var lehte=(kendi?RED_SUPP:RED_BASE)*rem, aleyhte=(kendi?RED_BASE:RED_SUPP)*rem;
+      if(d.harmed==="home"){ rh+=lehte; ra-=aleyhte; }
+      else { ra+=lehte; rh-=aleyhte; }
     });
 
     var expH=rh, expA=ra;

@@ -103,5 +103,9 @@ assert(!context.oncTutarli({type:"goal_opp",harmed:"home",oncH:0,oncA:1},{hg:0,a
 assert(context.oncTutarli({type:"goal_opp",harmed:"home",oncH:0,oncA:0},{hg:0,ag:1}));
 assert.strictEqual(context.oncTemiz({type:"pen_not",harmed:"home",oncH:3,oncA:0},{hg:1,ag:0}).h, "");
 
+// Kırmızı yönü: haksız atılan takımın düzeltmesi kendi kaybını (0,35) geri verir, rakibin artışını (0,65) siler
+{ const rs=imp(1,1,[{type:"red_self",harmed:"home",minute:30,certainty:100,oncH:0,oncA:0}]).mid.home;
+  const ro=imp(1,1,[{type:"red_opp",harmed:"home",minute:30,certainty:100,oncH:0,oncA:0}]).mid.home;
+  assert(rs>0 && ro>0 && Math.abs(rs-ro)>0.01, "kırmızı türleri farklı olmalı "+rs+" "+ro); }
 console.log("Ek testler başarılı: ayna, 3000 rastgele maç, oyun durumu, doğrulama");
 
