@@ -90,7 +90,9 @@ assert(yakin(imp(2,1,[]).mid.home,0));
 // Oyun durumu: 0-3 biten maçta 0-0 iken verilmeyen penaltı, skor bilinmeyenden daha değerli
 const bilinmez=imp(0,3,[{type:"pen_not",harmed:"home",minute:30,certainty:100}]).mid.home;
 const sifirsifir=imp(0,3,[{type:"pen_not",harmed:"home",minute:30,certainty:100,oncH:0,oncA:0}]).mid.home;
-assert(sifirsifir>bilinmez+0.1, "oyun durumu");
+const ikisifir=imp(0,3,[{type:"pen_not",harmed:"home",minute:30,certainty:100,oncH:0,oncA:2}]).mid.home;
+assert(sifirsifir>ikisifir+0.1, "oyun durumu: 0-0'da verilmeyen penaltı 0-2'dekinden değerli");
+assert(bilinmez>0 && bilinmez<sifirsifir, "skor bilinmezse olası skorların ortalaması");
 // Önde on kişi kalmak gerideyken kalmaktan az zarar
 const onde=imp(1,1,[{type:"red_self",harmed:"home",minute:30,certainty:100,oncH:1,oncA:0}]).mid.home;
 const geride=imp(1,1,[{type:"red_self",harmed:"home",minute:30,certainty:100,oncH:0,oncA:1}]).mid.home;
