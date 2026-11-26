@@ -2479,7 +2479,7 @@ function vKurallar(){
    +'<p class="note"><b>Karşılıklı hatalar birbirini götürür.</b> İki takımın da golü haksız iptal edildiyse averaj değişmez, etki sıfırdır.</p>'
    +'<p class="note"><b>Sonucu bilinen olaylar tam gol sayılır.</b> Golle biten yanlış penaltı ya da sayılan ofsaytlı gol geri alınırken 1 tam gol düşülür.</p>'
    +'<p class="note"><b>Kaçan yanlış penaltı kayda geçmez.</b> “Rakibe yanlış verilen penaltı (gol oldu)” yalnız top filelere gittiyse seçilir. Kurtarıldıysa ya da dışarı gittiyse skor zaten değişmemiştir; bu türe yazılmaz.</p>'
-   +'<p class="note"><b>Sonucu bilinmeyen olaylar olasılıkla sayılır.</b> Verilmeyen penaltı 0,76 gol değerindedir. Kırmızı kartın etkisi kalan süreye yayılır: mağdur takımın gol beklentisi artar, on kişi kalan rakibin gol beklentisi düşer. İki yön ayrı katsayılarla işlenir (0,65 ve 0,35). Kırmızıda kalan süre (96 − dakika) / 90. 89′ → 7/90, 90′ → 6/90, 96′ ve sonrası → 0. Artan sıçrama yok.</p>'
+   +'<p class="note"><b>Sonucu bilinmeyen olaylar olasılıkla sayılır.</b> Verilmeyen penaltı 0,76 gol değerindedir. Kırmızı kartın etkisi kalan süreye yayılır: 11 kişilik takımın gol beklentisi 10 kişiye karşı 0,65 artar, 10 kişi kalanınki 0,35 düşer (90 dakikalık değerler). Kırmızıda kalan süre (96 − dakika) / 90. 89′ → 7/90, 90′ → 6/90, 96′ ve sonrası → 0. Artan sıçrama yok.</p>'
    +'<p class="note"><b>Kesinlik yüzdesi ağırlık verir.</b> Aynı sayı hem “bu bir hataydı” inancını hem “düzeltme gerçekleşirdi” ihtimalini taşır. Bantın dar ucu kesinlik−20, geniş ucu kesinlik+20 (0–100). Bu üç senaryonun min/max’ıdır; istatistiksel güven aralığı değildir. Hızlı giriş: %95 / %80 / %60.</p>'
    +'<p class="note"><b>Aynı karar iki kez yazılmaz.</b> Bir karar ya gerçekleşir ya gerçekleşmez; iki tahmin aynı gerçekleşmenin iki okumasıdır. Taban gol beklentisi ev 1,45 / deplasman 1,20, kalan süre kesriyle çarpılır.</p></div>';
 
@@ -2508,7 +2508,7 @@ function vKurallar(){
   h+='<p class="note"><b>Puanı farklı mı?</b> Altı tür üç sınıfa iner. '
    +'<b>Kesin gol:</b> “golü haksız iptal edildi”, “geçersiz golü sayıldı” ve “haksız penaltı kazandı, gol oldu” aynı ağırlıktadır, çünkü üçünde de averaj mağdur lehine bir gol değişir. '
    +'<b>Olası gol:</b> “penaltısı verilmedi” bunun 0,76 katıdır; penaltı kaçabilirdi. '
-   +'<b>Eksik adam:</b> iki kırmızı kart seçeneği birebir aynı hesaplanır; ikisinde de kalan sürede mağdur takım bir kişi üstündür. Etki dakika ilerledikçe azalır, 96′ ve sonrasında sıfırdır.</p>'
+   +'<b>Eksik adam:</b> iki kırmızı kart seçeneğinde de düzeltmede averaj mağdur lehine kayar, ama aynı değil. Araştırmalara göre 11 kişilik takımın golü 10 kişiye karşı belirgin artar, 10 kişi kalanınki daha az düşer. Rakibe kırmızı verilmediyse düzeltme mağdura bu büyük artışı (0,65 gol/90′) verir; mağdur haksız atıldıysa düzeltme ona kendi küçük kaybını (0,35) geri verir ve rakibin büyük artışını siler. Etki dakika ilerledikçe azalır, 96′ ve sonrasında sıfırdır.</p>'
    +'<p class="note">İki seçenek yine de ayrı tutulur, çünkü hakemin hangi yönde hata yaptığı kayıt olarak önemlidir (Hatalı düdük ve Hakemler sayımları). Haksız penaltı kaçtıysa skor değişmemiştir; kayda geçmez.</p>'
    +'<p class="note">Karar girilmezse maç tabloya etkisiz kaydedilir. Bu normaldir; maçların çoğunda tartışmalı karar yoktur.</p></div>';
 
