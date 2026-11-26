@@ -1232,12 +1232,23 @@ function yazAnahtar(){
   var el=document.getElementById("yazIn"); var v=(el&&el.value||"").trim();
   if(!v || !(window.crypto&&crypto.subtle&&window.TextEncoder)){ S.msg="Anahtarı yaz."; render(); return; }
   crypto.subtle.digest("SHA-256", new TextEncoder().encode(v)).then(function(b){
-    if(hexOzet(b)!==YAZ_OZET){ S.msg="Anahtar yanlış."; render(); return; }
+    if(hexOzet(b)!==YAZ_OZET){ S.msg="Anahtar yanlış. Tekrar dene."; render(); return; }
     try{ localStorage.setItem(YAZ_ANAHTAR,YAZ_OZET); }catch(e){}
     location.replace(location.pathname);
   });
 }
-var MISAFIR = /(^|[?&#])misafir(=|&|$)/.test(location.search + location.hash) || !yazarMi();
+/* Üç kapı:
+   - Defteri tutan cihaz (yazma anahtarı bir kez girilmiş): her şey açık.
+   - İzleme linki (?izle=…): salt okunur tablo. Arkadaşlara giden link budur.
+   - Düz adres ya da başka her şey: giriş ekranı. Tablo görünmez, defter çekilmez.
+   İzleme kodu gizli değildir (yalnız okuma verir); amaç düz adresin tahmin edilip
+   misafirlerin oraya düşmemesi. Yazma anahtarının kendisi kodda yok. */
+var IZLE_KODU="402jeu8xua";
+var IZLE_LINKI=location.origin+location.pathname+"?izle="+IZLE_KODU;
+var IZLE=new RegExp("[?&#]izle="+IZLE_KODU+"(&|#|$)").test(location.search+location.hash);
+var YAZAR=yazarMi();
+var MISAFIR = !YAZAR || (IZLE || /(^|[?&#])misafir(=|&|$)/.test(location.search + location.hash));
+var KAPI = !YAZAR && !IZLE;
 var MISAFIR_BIN = "7e5bcb28b0d4471ca91a";
 
 var TABS=MISAFIR
@@ -1473,10 +1484,6 @@ function remotePull(cb){
   defterOku(binUrl()).then(function(r){return r.ok?r.json():null;})
   .then(function(d){
     if(d){
-      if(MISAFIR && lsGet("dp-me")){
-        var uz={}; ((d.matches)||[]).forEach(function(x){ uz[fixtureKey(x)]=1; });
-        S.yerelBekleyen=S.matches.filter(function(x){ return !uz[fixtureKey(x)]; }).length;
-      }
       var once=kararSay((d.matches)||[]);
       var m=birlestirDefter({teams:S.teams,matches:S.matches,silinen:S.silinen}, d);
       S.teams=m.teams; S.matches=m.matches; S.silinen=m.silinen;
@@ -1533,6 +1540,7 @@ function save(){
 function boot(){
   S.tema=temaOku();
   temaUygula();
+  if(KAPI){ render(); return; }
   S.me=lsGet("dp-me")||null;
   S.binId=MISAFIR?MISAFIR_BIN:(lsGet("dp-bin")||"");
   try{
@@ -1599,6 +1607,15 @@ function disconnectBin(){
 }
 
 /* ---------------- Giriş ekranı ---------------- */
+function vKapi(){
+  return '<div class="gate"><h1>Düdük Payı</h1>'
+   +'<p class="lead">Bu adres defteri tutan kişi içindir. Puan tablosunu görmek istiyorsan sana gönderilen izleme linkini aç.</p>'
+   +'<label for="yazIn">Giriş anahtarı</label>'
+   +'<div class="row"><input id="yazIn" type="password" autocomplete="current-password" onkeydown="if(event.key===\'Enter\')yazAnahtar()">'
+   +'<button class="btn" style="flex:0 0 auto" onclick="yazAnahtar()">Giriş yap</button></div>'
+   +(S.msg?'<p class="note" role="status" style="color:var(--red)">'+esc(S.msg)+'</p>':'')
+   +'<p class="foot">Anahtarı bir kez girdiğin cihaz hatırlanır; bir daha sorulmaz.</p></div>';
+}
 function vGate(){
   return '<div class="gate"><h1>Düdük <span>Payı.</span></h1>'
    +'<p class="lead">Bu defteri beş kişi birlikte tutuyor. Kim olduğunu seç — girdiğin her maç senin adınla kaydedilir.</p>'
@@ -1924,7 +1941,7 @@ function vTable(){
     big4:'Yalnız dört büyüklerin düdük payı.'
   };
   var h='<div class="card"><div class="card-head"><span class="lbl">'+(baslik[gor]||baslik.adj)+'</span>';
-  if(gor==='adj') h+='<span><button class="kopya-link" onclick="ozetKopyala()">Özeti kopyala</button><button class="kopya-link" onclick="haftaPaylas()">Paylaş</button></span>';
+  if(gor==='adj') h+='<span><button class="kopya-link" onclick="ozetKopyala()">Özeti kopyala</button><button class="kopya-link" onclick="paylasGorsel()">Paylaş</button></span>';
   h+='</div>';
   if(gor==='adj'){
     h+='<div class="okuma">'
@@ -2489,8 +2506,10 @@ function vKurallar(){
 
   h+='<div class="card"><span class="lbl">Çakışma</span>'
    +'<p class="note" style="margin-top:0">Kayıt etmeden önce ortak defter çekilir ve birleştirilir. Farklı maçlar yan yana durur. Aynı maçta iki kişi karar eklediyse ikisi de kalır. Bir karar silinirse mezartaşı düşer. Skor, hafta ve hakemde son kaydeden kazanır.</p></div>';
-  h+='<div class="card"><span class="lbl">Misafir adresi</span>'
-   +'<p class="note" style="margin-top:0">npoint kutu kodu sayfa kaynağında durur; bunu bilen biri deftere yazabilir. Misafir linkini herkese açık paylaşma.</p></div>';
+  h+='<div class="card"><span class="lbl">Kim neyi görür?</span>'
+   +'<p class="note" style="margin-top:0"><b>İzleme linki</b> (defteri tutanın paylaştığı link): tabloyu, maçları ve hakemleri görür; hiçbir şeyi değiştiremez.</p>'
+   +'<p class="note"><b>Düz adres</b>: giriş ekranı açılır. Yalnız giriş anahtarını bilen defteri tutar; anahtar bir kez girilen cihazda hatırlanır.</p>'
+   +'<p class="note">Bu bir arayüz kilididir. Ortak defterin kodu sayfa kaynağında durduğu için gerçek bir güvenlik duvarı değildir.</p></div>';
 
   return h;
 }
@@ -2865,6 +2884,7 @@ function render(){
   var fid=ae&&ae.id;
   var fpos=(ae && typeof ae.selectionStart==="number")?ae.selectionStart:null;
   var app=document.getElementById("app");
+  if(KAPI){ app.innerHTML=vKapi(); return; }
   if(!S.me && !MISAFIR){ app.innerHTML=vGate(); return; }
   if(MISAFIR && ["add","teams"].indexOf(S.tab)>=0) S.tab="table";
   if(S.tab==="duduk") S.tab="table";
@@ -2889,19 +2909,17 @@ function render(){
    +pano(headTable, maxHafta, incelenen, karar, pay)
    +'<div class="who">'
    +(MISAFIR
-      ? '<span class="misafir">Misafir görünümü</span>'
-        +'<button class="temabtn" onclick="S.anahtarAc=!S.anahtarAc;render()">Defteri ben tutuyorum</button>'
+      ? (YAZAR?'<span class="misafir">Misafirin gördüğü görünüm</span>':'')
         +'<button class="temabtn" onclick="temaDegis()">'+temaEtiket()+'</button>'
         +'<button class="temabtn" onclick="go(\'method\')">Kurallar</button>'
       : '<span>Defteri tutan: <b>'+esc(S.me)+'</b></span>'
         +'<button onclick="switchMe()">değiştir</button>'
+        +'<button class="temabtn" onclick="izleLinkiKopyala()">Misafir linkini kopyala</button>'
         +'<button class="temabtn" onclick="temaDegis()">'+temaEtiket()+'</button>'
         +'<button class="temabtn" onclick="go(\'method\')">Kurallar</button>'
         +'<button class="ayar-btn" onclick="go(\'teams\')" title="Ayarlar" aria-label="Ayarlar">'+(ICO.teams||'')+'</button>'
         +'<span class="by">'+(S.sync==="ortak"?'● ortak defter':S.sync==="hata"?'● bağlantı hatası':S.sync==="…"?'●':'● yalnız bu cihaz')+'</span>')
    +'</div>'
-   +(MISAFIR&&S.anahtarAc?'<div class="anahtar"><label for="yazIn">Yazma anahtarı</label><div class="row"><input id="yazIn" type="password" autocomplete="current-password" placeholder="Sana verilen anahtar"><button class="btn" onclick="yazAnahtar()">Yazmayı aç</button></div><p class="note" style="margin:6px 0 0">Bu cihaz bir kez açılınca hatırlanır.</p></div>':'')
-   +(MISAFIR&&S.yerelBekleyen?'<div class="warn">Bu cihazda ortak deftere gönderilmemiş <b>'+S.yerelBekleyen+' maç</b> var. Silinmedi; yazmayı açınca deftere gönderilir.</div>':'')
    +'</header>'
    +(S.ornek&&!MISAFIR&&!binUrl()?'<div class="warn">Örnek sezon — ortak deftere yazılmaz. Ayarlar’dan npoint kodunu yapıştırınca gerçek deftere geçersin.</div>':'')
    +(S.msg?'<div class="'+(/eklendi|kayıtlıydı|Bağlandı|yüklendi|kopyalandı|birleştirildi/.test(S.msg)?'ok':'warn')+'" role="status" aria-live="polite">'+esc(S.msg)+'</div>':'')
@@ -2946,6 +2964,101 @@ function pano(T, hafta, incelenen, karar, pay){
     +'</div></section>'
     +'<p class="pano-alt">'+esc(cumle)+(sc.length?' Kararlar doğru verilseydi '+sc.join(' ve ')+' sırada olurdu.':'')
     +' Hakem hataları takımlara toplam <b>'+tr1(pay)+' puan</b> kaybettirdi.</p>';
+}
+
+function izleLinkiKopyala(){ panoYaz(IZLE_LINKI,"Misafir linki panoya kopyalandı.","Kopyalanamadı: "+IZLE_LINKI); }
+
+/* Paylaş: puan durumu + tabelanın görseli (1080 px). Yazı tipleri yüklendikten sonra çizilir. */
+function paylasGorsel(){
+  if(!S.matches.length){ S.msg="Paylaşılacak tablo yok."; render(); return; }
+  var fontlar=["800 80px 'Big Shoulders Display'","700 40px 'Big Shoulders Display'","600 30px Figtree","700 30px Figtree"];
+  var hazir = (document.fonts&&document.fonts.load) ? Promise.all(fontlar.map(function(f){return document.fonts.load(f);})).catch(function(){}) : Promise.resolve();
+  hazir.then(function(){
+    var cv=tabloGorseli();
+    cv.toBlob(function(blob){
+      if(!blob){ S.msg="Görsel oluşturulamadı."; render(); return; }
+      var ad="duduk-payi-"+(new Date().toISOString().slice(0,10))+".png";
+      var dosya=null; try{ dosya=new File([blob],ad,{type:"image/png"}); }catch(e){}
+      var metin="Düdük Payı: hakem kararları doğru verilseydi puan tablosu\n"+IZLE_LINKI;
+      if(dosya && navigator.canShare && navigator.canShare({files:[dosya]})){
+        navigator.share({files:[dosya], text:metin, title:"Düdük Payı"}).catch(function(){});
+        return;
+      }
+      var a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=ad;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(function(){ URL.revokeObjectURL(a.href); }, 4000);
+      S.msg="Görsel indirildi; WhatsApp'tan paylaşabilirsin."; render();
+    },"image/png");
+  });
+}
+function tabloGorseli(){
+  var T=buildTable(), rows=T.adj, W=1080, P=64, RH=56, TOP=640;
+  var H=TOP+rows.length*RH+150;
+  var cv=document.createElement("canvas"); cv.width=W; cv.height=H;
+  var c=cv.getContext("2d");
+  var CHALK="#EEF4EC", MUTED="#A3BAAB", DIM="#7F9A89", GREEN="#74F2A0", RED="#FF7A6B", AMBER="#F5C518";
+  var DISP="'Big Shoulders Display','Arial Narrow',sans-serif", BODY="Figtree,system-ui,sans-serif";
+  for(var y=0;y<H;y+=120){ c.fillStyle=(y/120)%2?"#11301F":"#0E2A1E"; c.fillRect(0,y,W,120); }
+  function yaz(t,x,y,font,renk,hiza){ c.font=font; c.fillStyle=renk; c.textAlign=hiza||"left"; c.textBaseline="alphabetic"; c.fillText(t,x,y); }
+  function kutu(x,y,w,h,r,renk){ c.beginPath(); c.moveTo(x+r,y); c.arcTo(x+w,y,x+w,y+h,r); c.arcTo(x+w,y+h,x,y+h,r); c.arcTo(x,y+h,x,y,r); c.arcTo(x,y,x+w,y,r); c.closePath(); c.fillStyle=renk; c.fill(); }
+  function nokta(ad,x,y,r){
+    var k=TEAM_COLORS[ad]||["#7c8a7f","#5e6d61"];
+    c.save(); c.beginPath(); c.arc(x,y,r,0,Math.PI*2); c.clip();
+    c.fillStyle=k[0]; c.fillRect(x-r,y-r,r,2*r); c.fillStyle=k[1]; c.fillRect(x,y-r,r,2*r); c.restore();
+    c.beginPath(); c.arc(x,y,r,0,Math.PI*2); c.strokeStyle="rgba(238,244,236,.35)"; c.lineWidth=1.5; c.stroke();
+  }
+  var hafta=0; S.matches.forEach(function(m){var w=parseInt(m.week,10); if(w>hafta)hafta=w;});
+  yaz("Düdük Payı",P,122,"800 96px "+DISP,CHALK);
+  yaz("2026–27 Süper Lig"+(hafta?", "+hafta+". hafta sonu":""),P,172,"600 30px "+BODY,MUTED);
+  yaz("Hakem kararları doğru verilseydi puan tablosu",P,222,"500 30px "+BODY,CHALK);
+
+  /* Tabela */
+  var srt=rows.slice().sort(function(a,b){return b.mid-a.mid;});
+  var zarar=srt[0].mid>0.05?srt[0]:null, kayir=srt[srt.length-1].mid<-0.05?srt[srt.length-1]:null;
+  var bx=P-8, by=256, bw=W-2*(P-8), bh=330;
+  kutu(bx-6,by-6,bw+12,bh+12,16,"#0B1712"); kutu(bx,by,bw,bh,12,"#07100B");
+  var cR=bx+bw-200-24-170, cG=bx+bw-200-12;
+  yaz("resmi",cR+80,by+42,"600 24px "+BODY,"#E7867D","center");
+  yaz("olması gereken",cG+100,by+42,"600 24px "+BODY,"#7FE3A6","center");
+  function panoSatir(r,etiket,y0){
+    if(!r) return;
+    c.fillStyle="#1A2A21"; c.fillRect(bx+20,y0,bw-40,2);
+    yaz(etiket,bx+28,y0+40,"600 24px "+BODY,"#9FB4A7");
+    nokta(r.name,bx+42,y0+90,13);
+    yaz(r.name,bx+66,y0+104,"700 50px "+DISP,CHALK);
+    kutu(cR,y0+22,160,106,8,"#020604"); kutu(cG,y0+22,200,106,8,"#020604");
+    c.save(); c.shadowColor="rgba(255,84,70,.7)"; c.shadowBlur=18; yaz(String(r.pts),cR+80,y0+108,"800 84px "+DISP,"#FF5446","center"); c.restore();
+    c.save(); c.shadowColor="rgba(77,245,147,.65)"; c.shadowBlur=18; yaz(tr1(r.pts+r.mid),cG+100,y0+108,"800 84px "+DISP,"#4DF593","center"); c.restore();
+  }
+  panoSatir(zarar,"Hakemden en çok zarar gören",by+60);
+  panoSatir(kayir,"Hakemden en çok kayırılan",by+60+135);
+
+  /* Tablo */
+  var xRes=W-P-400, xOl=W-P-130, xF=W-P;
+  yaz("#",P+24,TOP-18,"600 24px "+BODY,MUTED,"right");
+  yaz("Takım",P+52,TOP-18,"600 24px "+BODY,MUTED);
+  yaz("Resmi",xRes,TOP-18,"600 24px "+BODY,MUTED,"right");
+  yaz("Olması gereken",xOl,TOP-18,"600 24px "+BODY,MUTED,"right");
+  yaz("Fark",xF,TOP-18,"600 24px "+BODY,MUTED,"right");
+  c.fillStyle="rgba(238,244,236,.22)"; c.fillRect(P,TOP-4,W-2*P,2);
+  rows.forEach(function(r,i){
+    var y=TOP+i*RH+40;
+    if(i) { c.fillStyle="rgba(238,244,236,.08)"; c.fillRect(P,TOP+i*RH,W-2*P,1); }
+    yaz(String(r.adjPos),P+24,y,"700 34px "+DISP,r.adjPos===1?AMBER:MUTED,"right");
+    nokta(r.name,P+66,y-11,11);
+    c.font="600 30px "+BODY; var ad=r.name; yaz(ad,P+88,y,"600 30px "+BODY,CHALK);
+    var mv=r.realPos-r.adjPos;
+    if(mv){ var gx=P+88+c.measureText(ad).width+14; yaz((mv>0?"▲":"▼")+Math.abs(mv),gx,y-2,"700 22px "+BODY,mv>0?GREEN:RED); }
+    yaz(String(r.pts),xRes,y,"600 36px "+DISP,MUTED,"right");
+    yaz(tr1(r.pts+r.mid),xOl,y,"800 40px "+DISP,CHALK,"right");
+    var f=Math.round(r.mid*10)/10;
+    yaz(tr1i(r.mid),xF,y,"700 36px "+DISP,f>0?GREEN:(f<0?RED:DIM),"right");
+  });
+  var fy=TOP+rows.length*RH+56;
+  yaz("Fark: + hakem yüzünden kaybedilen, − hakem sayesinde fazladan alınan puan.",P,fy,"500 24px "+BODY,MUTED);
+  yaz("▲▼ resmi sıraya göre değişim.",P,fy+36,"500 24px "+BODY,MUTED);
+  yaz("Düdük Payı",W-P,fy+36,"800 30px "+DISP,AMBER,"right");
+  return cv;
 }
 function tabGolge(){
   var n=document.getElementById("tabs"), w=document.getElementById("tabwrap");
