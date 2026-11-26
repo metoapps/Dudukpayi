@@ -22,5 +22,6 @@ Tek dosya: `index.html` (HTML + CSS + JS).
 
 ## Erişim
 
-- `https://metoapps.github.io/Dudukpayi/` — herkese salt okunur (misafir).
-- Yazma: bir kez gizli `?yaz=…` linki açılınca o cihazda etkinleşir (anahtar kodda yok, yalnız SHA-256 özeti var). Arayüz kilididir, ortak defterin gerçek koruması değildir.
+- İzleme linki (`?izle=…`): salt okunur tablo; arkadaşlara giden link budur.
+- Düz adres: giriş ekranı. Yazma anahtarı bir kez girilen cihaz hatırlanır (kodda yalnız SHA-256 özeti var).
+- Arayüz kilididir; ortak defterin gerçek koruması değildir.
